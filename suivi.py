@@ -172,9 +172,11 @@ def normaliser(o):
     url_photo = ph.get("url") or o.get("thumbnailUrl") or p0.get("url") or ""
     hr = ph.get("high_resolution") or ph.get("highResolution") or p0.get("high_resolution") or p0.get("highResolution") or {}
     o["photo"] = {"url": url_photo, "high_resolution": {"timestamp": hr.get("timestamp")}}
-    o["brand_title"] = o.get("brand_title") or o.get("brandTitle") or _titre(o.get("brand"))
-    o["size_title"] = o.get("size_title") or o.get("sizeTitle") or _titre(o.get("size"))
-    o["status"] = o.get("status") if isinstance(o.get("status"), str) and o.get("status") else (o.get("statusTitle") or _titre(o.get("condition")) or "")
+    box = o.get("itemBox") if isinstance(o.get("itemBox"), dict) else {}
+    ligne2 = [x.strip() for x in str(box.get("secondLine") or "").split("·") if x.strip()]
+    o["brand_title"] = o.get("brand_title") or o.get("brandTitle") or _titre(o.get("brand")) or str(box.get("firstLine") or "")
+    o["size_title"] = o.get("size_title") or o.get("sizeTitle") or _titre(o.get("size")) or (ligne2[0] if len(ligne2) > 1 else "")
+    o["status"] = o.get("status") if isinstance(o.get("status"), str) and o.get("status") else (o.get("statusTitle") or _titre(o.get("condition")) or (ligne2[-1] if ligne2 else ""))
     if o.get("favourite_count") is None:
         o["favourite_count"] = o.get("favouriteCount")
     return o
