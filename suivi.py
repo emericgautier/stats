@@ -407,7 +407,21 @@ g.querySelectorAll('.card').forEach(function(e){{e.hidden=!!r&&e.dataset.r!==r}}
 # ---------------------------------------------------------------- test
 
 def diagnostic(url):
-    """Affiche ce que le site renvoie, pour comprendre un échec."""
+    """Affiche ce que le site renvoie, pour comprendre un échec, et l'envoie par notification."""
+    global log
+    lignes = []
+    log_orig = log
+    def log(*a):
+        lignes.append(" ".join(str(x) for x in a))
+        log_orig(*a)
+    try:
+        _diagnostic(url)
+    finally:
+        log = log_orig
+    notifier("Diagnostic", "\n".join(lignes)[:3800], tags="mag")
+
+
+def _diagnostic(url):
     log("---- DIAGNOSTIC ----")
     log(f"Base : {BASE}")
     log(f"Cookies : {', '.join(session.cookies.keys()) or 'aucun'}")
