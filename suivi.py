@@ -20,7 +20,7 @@ import sys
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from urllib.parse import parse_qsl, urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit
 
 import requests
 from bs4 import BeautifulSoup
@@ -81,13 +81,92 @@ def params_depuis_url(url):
     return p
 
 
+def url_page(url, page):
+    """Même recherche, triée des plus récentes, à la page voulue."""
+    u = urlsplit(url)
+    q = [(k, v) for k, v in parse_qsl(u.query) if k not in ("page", "order", "time", "search_id")]
+    q += [("order", "newest_first"), ("page", str(page))]
+    return f"{u.scheme}://{u.netloc}{u.path}?{urlencode(q)}"
+
+
+def ts_photo(url):
+    """Les photos sont souvent nommées d'après leur heure d'envoi (horodatage Unix)."""
+    m = re.search(r"/(\d{10})\.(?:jpe?g|webp|png)", url or "")
+    if m and 1.5e9 < int(m.group(1)) < 2.2e9:
+        return float(m.group(1))
+    return None
+
+
+def items_depuis_flux(texte):
+    """Annonces présentes dans les données embarquées de la page (format self.__next_f)."""
+    morceaux = []
+    for m in re.finditer(r'self\.__next_f\.push\(\[1,"((?:[^"\\]|\\.)*)"\]\)', texte):
+        try:
+            morceaux.append(json.loads('"' + m.group(1) + '"'))
+        except ValueError:
+            pass
+    flux = "".join(morceaux)
+    dec = json.JSONDecoder()
+    vus, out = set(), []
+    for m in re.finditer(r'\{"id":\s*\d{6,}', flux):
+        try:
+            obj, _ = dec.raw_decode(flux, m.start())
+        except ValueError:
+            continue
+        if not isinstance(obj, dict) or obj["id"] in vus:
+            continue
+        if "title" in obj and ("price" in obj or "photo" in obj):
+            vus.add(obj["id"])
+            out.append(obj)
+    return out
+
+
+def items_depuis_grille(texte):
+    """Annonces lues dans la grille HTML, si les données embarquées manquent."""
+    soup = BeautifulSoup(texte, "html.parser")
+    out, vus = [], set()
+    for bloc in soup.select('[data-testid^="product-item-id-"]'):
+        m = re.search(r"product-item-id-(\d+)", bloc.get("data-testid", ""))
+        if not m or m.group(1) in vus:
+            continue
+        i = m.group(1)
+        vus.add(i)
+        a = bloc.select_one('a[href*="/items/"]')
+        info = (a.get("title") if a else "") or ""
+        img = bloc.select_one("img")
+        src = (img.get("src") or img.get("data-src") or "") if img else ""
+        champ = lambda nom: (re.search(nom + r"\s*:\s*([^,]+)", info) or [None, ""])[1].strip()
+        pm = re.search(r"(\d+(?:[.,]\d{1,2})?)\s*€", info) or re.search(r"(\d+(?:[.,]\d{1,2})?)\s*€", bloc.get_text(" "))
+        titre = info.split(", marque")[0] if ", marque" in info else ((img.get("alt") if img else "") or info)
+        href = a.get("href", "") if a else ""
+        out.append({
+            "id": int(i),
+            "title": titre.split(", ")[0] if titre == info else titre,
+            "price": {"amount": pm.group(1).replace(",", ".") if pm else None},
+            "brand_title": champ("marque"),
+            "size_title": champ("taille"),
+            "status": champ("état"),
+            "photo": {"url": src},
+            "url": href if href.startswith("http") else BASE + href if href else f"{BASE}/items/{i}",
+            "favourite_count": None,
+        })
+    return out
+
+
+DERNIERE_METHODE = ""
+
+
 def chercher(url, page=1):
-    params = dict(params_depuis_url(url), page=str(page))
+    global DERNIERE_METHODE
     for essai in range(2):
-        r = session.get(BASE + "/api/v2/catalog/items", params=params,
-                        headers={"Accept": "application/json, text/plain, */*", "Referer": url}, timeout=25)
+        r = session.get(url_page(url, page), headers={"Accept": "text/html", "Referer": BASE + "/"}, timeout=30)
         if r.status_code == 200:
-            return r.json().get("items", [])
+            items = items_depuis_flux(r.text)
+            DERNIERE_METHODE = "données embarquées"
+            if not items:
+                items = items_depuis_grille(r.text)
+                DERNIERE_METHODE = "grille HTML"
+            return items
         if r.status_code in (401, 403) and essai == 0:
             log(f"   Recherche refusée (HTTP {r.status_code}), nouvelle session…")
             session.cookies.clear()
@@ -114,7 +193,7 @@ def prix(it):
 def publie_le(it):
     ph = it.get("photo") or {}
     ts = (ph.get("high_resolution") or {}).get("timestamp")
-    return float(ts) if ts else None
+    return float(ts) if ts else ts_photo(ph.get("url"))
 
 
 def annonce_depuis_api(it, nom_recherche):
@@ -273,7 +352,7 @@ def passage():
                             continue
                         ann[i] = annonce_depuis_api(it, nom)
                         nouveaux += 1
-                if len(items) < 96:
+                if len(items) < 20:
                     break
                 time.sleep(random.uniform(*PAUSE))
         except Exception as e:
@@ -463,14 +542,18 @@ def test():
     nom, url = recherches[0]
     log(f"Recherche testée : {nom}")
     log(f"Paramètres : {params_depuis_url(url)}")
-    diagnostic(url)
     try:
         items = chercher(url)
     except Exception as e:
         log(f"ÉCHEC de la recherche : {e}")
         notifier("Test : échec", f"La recherche ne répond pas depuis GitHub ({e}).", tags="warning")
         return 1
-    log(f"{len(items)} annonces reçues")
+    log(f"{len(items)} annonces reçues (méthode : {DERNIERE_METHODE})")
+    exemples = []
+    for it in items[:3]:
+        pub = publie_le(it)
+        exemples.append(f"{it.get('title')} | {fmt_prix(prix(it))} | {it.get('brand_title')} | {it.get('size_title')} | {it.get('status')} | publiée il y a {fmt_h(heures(pub, maintenant())) if pub else '?'} | photo {'oui' if (it.get('photo') or {}).get('url') else 'non'}")
+    notifier("Exemples", f"Méthode : {DERNIERE_METHODE}\n" + "\n".join(exemples), tags="mag")
     for it in items[:5]:
         pub = publie_le(it)
         age = fmt_h(heures(pub, maintenant())) if pub else "?"
