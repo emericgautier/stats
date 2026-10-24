@@ -406,6 +406,38 @@ g.querySelectorAll('.card').forEach(function(e){{e.hidden=!!r&&e.dataset.r!==r}}
 
 # ---------------------------------------------------------------- test
 
+def diagnostic(url):
+    """Affiche ce que le site renvoie, pour comprendre un échec."""
+    log("---- DIAGNOSTIC ----")
+    log(f"Base : {BASE}")
+    log(f"Cookies : {', '.join(session.cookies.keys()) or 'aucun'}")
+    p = params_depuis_url(url)
+    essais = [
+        ("api complet", BASE + "/api/v2/catalog/items", p),
+        ("api simple", BASE + "/api/v2/catalog/items", {"search_text": p.get("search_text", "barbour"), "per_page": "5"}),
+        ("api items", BASE + "/api/v2/items", {"search_text": p.get("search_text", "barbour"), "per_page": "5"}),
+    ]
+    for nom, u, prm in essais:
+        try:
+            r = session.get(u, params=prm, headers={"Accept": "application/json, text/plain, */*", "Referer": url}, timeout=25)
+            log(f"[{nom}] HTTP {r.status_code} · {r.headers.get('content-type', '')} · {r.text[:200]!r}")
+        except Exception as e:
+            log(f"[{nom}] erreur {e}")
+    try:
+        r = session.get(url, headers={"Accept": "text/html"}, timeout=25)
+        t = r.text
+        ids = set(re.findall(r'/items/(\d{6,})', t))
+        log(f"[page recherche] HTTP {r.status_code} · {len(t)} caractères · {len(ids)} annonces trouvées dans le HTML")
+        for m in ("__NEXT_DATA__", "self.__next_f", '"catalogItems"', '"price"', '"photo"', "data-testid=\"grid-item\"", "product-item-id"):
+            log(f"   contient {m} : {m in t}")
+        for m in re.finditer(r'/api/v2/[a-z_/]+', t):
+            log(f"   lien api vu : {m.group(0)}")
+            break
+    except Exception as e:
+        log(f"[page recherche] erreur {e}")
+    log("---- FIN DIAGNOSTIC ----")
+
+
 def test():
     """Vérifie que tout fonctionne, sans rien enregistrer."""
     recherches = lire_recherches()
@@ -417,6 +449,7 @@ def test():
     nom, url = recherches[0]
     log(f"Recherche testée : {nom}")
     log(f"Paramètres : {params_depuis_url(url)}")
+    diagnostic(url)
     try:
         items = chercher(url)
     except Exception as e:
