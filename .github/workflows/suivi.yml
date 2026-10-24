@@ -1,8 +1,10 @@
 name: Suivi des ventes
 
+# Chaque lancement fait 2 passages espacés d'environ 15 min, publie la page,
+# puis relance le suivant. La tâche horaire sert de filet si la chaîne s'arrête.
 on:
   schedule:
-    - cron: "7,37 * * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -15,6 +17,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: write
 
 concurrency:
   group: suivi
@@ -23,7 +26,7 @@ concurrency:
 jobs:
   suivi:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 50
     environment:
       name: github-pages
     steps:
@@ -48,22 +51,28 @@ jobs:
           if [ "${{ github.event.inputs.mode }}" = "test" ]; then
             python suivi.py --test
           else
-            python suivi.py
+            python suivi.py --boucle 2
           fi
 
       - name: Mémoire du suivi (écriture)
-        if: github.event.inputs.mode != 'test' && hashFiles('etat.json') != ''
+        if: ${{ !cancelled() && github.event.inputs.mode != 'test' && hashFiles('etat.json') != '' }}
         uses: actions/cache/save@v4
         with:
           path: etat.json
           key: etat-${{ github.run_id }}
 
       - name: Préparer la page
-        if: github.event.inputs.mode != 'test' && hashFiles('docs/index.html') != ''
+        if: ${{ !cancelled() && github.event.inputs.mode != 'test' && hashFiles('docs/index.html') != '' }}
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
       - name: Publier la page
-        if: github.event.inputs.mode != 'test' && hashFiles('docs/index.html') != ''
+        if: ${{ !cancelled() && github.event.inputs.mode != 'test' && hashFiles('docs/index.html') != '' }}
         uses: actions/deploy-pages@v4
+
+      - name: Relancer le suivant
+        if: ${{ !cancelled() && github.event.inputs.mode != 'test' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run suivi.yml --ref main -f mode=suivi

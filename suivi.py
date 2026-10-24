@@ -624,7 +624,28 @@ def test():
     return 0 if ok and items else 1
 
 
+INTERVALLE_MIN = 15         # minutes entre deux passages d'un même lancement
+
+
+def boucle(n):
+    """Plusieurs passages d'affilée, espacés d'environ INTERVALLE_MIN minutes (avec un peu d'aléa)."""
+    for k in range(n):
+        debut = maintenant()
+        try:
+            passage()
+        except Exception as e:
+            log(f"Passage {k + 1} interrompu : {e}")
+        if k < n - 1:
+            attente = INTERVALLE_MIN * 60 + random.uniform(-90, 90) - (maintenant() - debut)
+            if attente > 0:
+                log(f"Prochain passage dans {attente / 60:.0f} min")
+                time.sleep(attente)
+
+
 if __name__ == "__main__":
     if "--test" in sys.argv:
         sys.exit(test())
-    passage()
+    if "--boucle" in sys.argv:
+        boucle(int(sys.argv[sys.argv.index("--boucle") + 1]))
+    else:
+        passage()
