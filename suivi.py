@@ -36,7 +36,7 @@ NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "").strip()
 # Réglages
 FENETRE_SUIVI_H = 72        # durée de suivi d'une annonce après sa publication
 NOTIF_MAX_H = 24            # notifier seulement les ventes parties en moins de X heures
-PAGES_PAR_RECHERCHE = 2     # 96 annonces par page, triées des plus récentes
+PAGES_PAR_RECHERCHE = 1     # 96 annonces les plus récentes, largement assez toutes les 30 min
 MAX_VERIFS_PAR_PASSAGE = 80 # pages d'annonces ouvertes au maximum par passage
 PAUSE = (2.0, 4.0)          # pause entre deux pages d'annonces (secondes)
 CONSERVATION_J = 10         # oubli des annonces plus anciennes
