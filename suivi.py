@@ -157,11 +157,34 @@ DERNIERE_METHODE = ""
 EXEMPLE_BRUT = ""
 
 
+def _titre(v):
+    if isinstance(v, dict):
+        return v.get("title") or v.get("name") or ""
+    return v or ""
+
+
+def normaliser(o):
+    """Ramène les différents formats de données du site à un seul."""
+    o = dict(o)
+    photos = o.get("photos") or []
+    p0 = photos[0] if photos and isinstance(photos[0], dict) else {}
+    ph = o.get("photo") if isinstance(o.get("photo"), dict) else {}
+    url_photo = ph.get("url") or o.get("thumbnailUrl") or p0.get("url") or ""
+    hr = ph.get("high_resolution") or ph.get("highResolution") or p0.get("high_resolution") or p0.get("highResolution") or {}
+    o["photo"] = {"url": url_photo, "high_resolution": {"timestamp": hr.get("timestamp")}}
+    o["brand_title"] = o.get("brand_title") or o.get("brandTitle") or _titre(o.get("brand"))
+    o["size_title"] = o.get("size_title") or o.get("sizeTitle") or _titre(o.get("size"))
+    o["status"] = o.get("status") if isinstance(o.get("status"), str) and o.get("status") else (o.get("statusTitle") or _titre(o.get("condition")) or "")
+    if o.get("favourite_count") is None:
+        o["favourite_count"] = o.get("favouriteCount")
+    return o
+
+
 def fusionner(flux, grille):
     """Complète les annonces de la grille avec les données embarquées (et inversement)."""
     global DERNIERE_METHODE, EXEMPLE_BRUT
     if flux:
-        EXEMPLE_BRUT = json.dumps(flux[0], ensure_ascii=False)[:1500]
+        EXEMPLE_BRUT = "Clés : " + ", ".join(flux[0].keys()) + "\n" + json.dumps({k: v for k, v in flux[0].items() if k not in ("photos", "thumbnailUrls", "user", "serviceFee", "totalItemPrice")}, ensure_ascii=False)[:2500]
     par_id = {str(o["id"]): o for o in flux}
     out = []
     for g in grille:
@@ -176,6 +199,7 @@ def fusionner(flux, grille):
             m["brand_title"] = m["brand"] if isinstance(m["brand"], str) else (m["brand"] or {}).get("title", "")
         out.append(m)
     out += list(par_id.values())
+    out = [normaliser(o) for o in out]
     DERNIERE_METHODE = f"grille {len(grille)} · données {len(flux)} · total {len(out)}"
     return out
 
@@ -351,6 +375,7 @@ def passage():
     ouvrir_session()
 
     presents = set()
+    deja_vues = set(etat.get("recherches_vues", []))
     for nom, url in recherches:
         nouveaux = 0
         try:
@@ -369,7 +394,12 @@ def passage():
                         pub = publie_le(it)
                         if pub and t0 - pub > FENETRE_SUIVI_H * 3600:
                             continue
-                        ann[i] = annonce_depuis_api(it, nom)
+                        a = annonce_depuis_api(it, nom)
+                        if not a["publie"]:
+                            # Recherche déjà connue : l'annonce vient d'apparaître (à 30 min près).
+                            # Premier passage : âge inconnu, l'annonce est suivie mais exclue des délais.
+                            a["publie"] = t0 if nom in deja_vues else None
+                        ann[i] = a
                         nouveaux += 1
                 if len(items) < 20:
                     break
@@ -378,6 +408,9 @@ def passage():
             log(f"[{nom}] erreur de recherche : {e}")
             continue
         log(f"[{nom}] {nouveaux} nouvelles annonces")
+        etat.setdefault("recherches_vues", [])
+        if nom not in etat["recherches_vues"]:
+            etat["recherches_vues"].append(nom)
 
     # Annonces à revérifier : disparues des résultats, encore dans la fenêtre de suivi
     a_verifier = [a for i, a in ann.items()
@@ -457,6 +490,7 @@ def ecrire_rapport(etat):
 
     lignes = []
     for nom, lst in sorted(par.items()):
+        lst = [a for a in lst if a.get("publie")]  # sans l'âge exact (premier passage), pas de statistiques
         termines = [a for a in lst if a["statut"] == "vendu" or t0 - (a.get("publie") or a["vu"]) >= 24 * 3600]
         vendus = [a for a in lst if a["statut"] == "vendu"]
         v24 = [a for a in vendus if (heures(a.get("publie"), a["vendu_vu"]) or 1e9) <= 24]
@@ -582,7 +616,8 @@ def test():
         s = statut_page(items[0].get("url") or f"{BASE}/items/{items[0]['id']}")
         log(f"Statut lu sur la page de la première annonce : {s}")
     notifier("Test réussi", f"{len(items)} annonces trouvées pour « {nom} ». Les notifications fonctionnent.",
-             lien=items[0].get("url") if items else None, tags="white_check_mark")
+             lien=items[0].get("url") if items else None,
+             photo=(items[0].get("photo") or {}).get("url") if items else None, tags="white_check_mark")
     return 0 if ok and items else 1
 
 
