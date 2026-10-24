@@ -444,6 +444,17 @@ def passage():
     # Notifications : seulement les ventes rapides
     rapides = [a for a in ventes if (heures(a.get("publie"), a["vendu_vu"]) or 1e9) <= NOTIF_MAX_H]
     log(f"{len(ventes)} ventes détectées, dont {len(rapides)} en moins de {NOTIF_MAX_H} h")
+    if est_nuit():
+        # La nuit : pas de notification, les ventes rapides sont gardées pour le résumé de 7 h
+        etat.setdefault("nuit", []).extend(a["id"] for a in rapides)
+        rapides = []
+    elif etat.get("nuit"):
+        nuit = [ann[i] for i in etat.pop("nuit") if i in ann]
+        if nuit:
+            nuit.sort(key=lambda a: heures(a.get("publie"), a["vendu_vu"]) or 1e9)
+            lignes = [f"{fmt_prix(a['prix'])} · {fmt_h(heures(a.get('publie'), a['vendu_vu']))} · {a['recherche']} · {a['titre']}" for a in nuit[:10]]
+            notifier(f"Cette nuit : {len(nuit)} vente{'s' if len(nuit) > 1 else ''} rapide{'s' if len(nuit) > 1 else ''}",
+                     "\n".join(lignes), lien=nuit[0]["url"], photo=nuit[0]["photo"], tags="sunrise")
     if len(rapides) > 5:
         lignes = [f"{fmt_prix(a['prix'])} · {fmt_h(heures(a.get('publie'), a['vendu_vu']))} · {a['recherche']} · {a['titre']}" for a in rapides[:8]]
         notifier(f"{len(rapides)} ventes rapides", "\n".join(lignes), tags="fire")
@@ -625,6 +636,13 @@ def test():
 
 
 INTERVALLE_MIN = 15         # minutes entre deux passages d'un même lancement
+INTERVALLE_NUIT_MIN = 60    # la nuit (NUIT_DEBUT h à NUIT_FIN h, heure de Paris)
+NUIT_DEBUT, NUIT_FIN = 0, 7
+
+
+def est_nuit():
+    h = datetime.now(ZoneInfo("Europe/Paris")).hour
+    return NUIT_DEBUT <= h < NUIT_FIN
 
 
 def boucle(n):
@@ -636,7 +654,11 @@ def boucle(n):
         except Exception as e:
             log(f"Passage {k + 1} interrompu : {e}")
         if k < n - 1:
-            attente = INTERVALLE_MIN * 60 + random.uniform(-90, 90) - (maintenant() - debut)
+            pause = INTERVALLE_NUIT_MIN if est_nuit() else INTERVALLE_MIN
+            attente = pause * 60 + random.uniform(-90, 90) - (maintenant() - debut)
+            fin_nuit = datetime.now(ZoneInfo("Europe/Paris")).replace(hour=NUIT_FIN, minute=2, second=0, microsecond=0).timestamp()
+            if est_nuit() and maintenant() + attente > fin_nuit:
+                attente = max(60, fin_nuit - maintenant())  # reprendre le rythme de jour dès 7 h
             if attente > 0:
                 log(f"Prochain passage dans {attente / 60:.0f} min")
                 time.sleep(attente)
