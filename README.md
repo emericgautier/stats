@@ -1,6 +1,6 @@
 # Suivi des ventes
 
-Toutes les 30 minutes, GitHub lance `suivi.py` :
+Environ toutes les 15 minutes, GitHub lance `suivi.py` (2 passages par lancement, puis le lancement suivant démarre tout seul ; une tâche horaire relance la chaîne si elle s'arrête) :
 
 - il récupère les nouvelles annonces de chaque recherche enregistrée dans le secret `RECHERCHES` ;
 - il revérifie les annonces déjà suivies ;
@@ -21,7 +21,7 @@ Aucune connexion à un compte : le script lit seulement des pages publiques.
 6. **Test** : onglet **Actions**, active les workflows si GitHub le demande, choisis **Suivi des ventes › Run workflow**, mode **test**. Tu dois recevoir « Test réussi » sur l'iPhone. Le journal du passage affiche les annonces trouvées.
 7. **App sur l'iPhone** : ouvre la page de rapport dans **Safari**, touche le bouton **Partager**, puis **Sur l'écran d'accueil**. L'icône « Ventes » apparaît comme une app et s'ouvre en plein écran.
 
-Ensuite tout tourne seul, toutes les 30 minutes environ (GitHub décale parfois de quelques minutes).
+Ensuite tout tourne seul. La page de rapport est republiée toutes les 30 minutes environ.
 
 ## Ajouter ou modifier une recherche
 
