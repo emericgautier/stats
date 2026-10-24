@@ -154,6 +154,30 @@ def items_depuis_grille(texte):
 
 
 DERNIERE_METHODE = ""
+EXEMPLE_BRUT = ""
+
+
+def fusionner(flux, grille):
+    """Complète les annonces de la grille avec les données embarquées (et inversement)."""
+    global DERNIERE_METHODE, EXEMPLE_BRUT
+    if flux:
+        EXEMPLE_BRUT = json.dumps(flux[0], ensure_ascii=False)[:1500]
+    par_id = {str(o["id"]): o for o in flux}
+    out = []
+    for g in grille:
+        f = par_id.pop(str(g["id"]), {})
+        m = dict(g)
+        for k, v in f.items():
+            if k not in m or m[k] in (None, "", {}) or (k == "price" and not (m[k] or {}).get("amount")):
+                m[k] = v
+            elif k == "photo" and isinstance(v, dict):
+                m["photo"] = {**v, **{kk: vv for kk, vv in m["photo"].items() if vv}}
+        if m.get("brand") and not m.get("brand_title"):
+            m["brand_title"] = m["brand"] if isinstance(m["brand"], str) else (m["brand"] or {}).get("title", "")
+        out.append(m)
+    out += list(par_id.values())
+    DERNIERE_METHODE = f"grille {len(grille)} · données {len(flux)} · total {len(out)}"
+    return out
 
 
 def chercher(url, page=1):
@@ -161,12 +185,7 @@ def chercher(url, page=1):
     for essai in range(2):
         r = session.get(url_page(url, page), headers={"Accept": "text/html", "Referer": BASE + "/"}, timeout=30)
         if r.status_code == 200:
-            items = items_depuis_flux(r.text)
-            DERNIERE_METHODE = "données embarquées"
-            if not items:
-                items = items_depuis_grille(r.text)
-                DERNIERE_METHODE = "grille HTML"
-            return items
+            return fusionner(items_depuis_flux(r.text), items_depuis_grille(r.text))
         if r.status_code in (401, 403) and essai == 0:
             log(f"   Recherche refusée (HTTP {r.status_code}), nouvelle session…")
             session.cookies.clear()
@@ -554,6 +573,7 @@ def test():
         pub = publie_le(it)
         exemples.append(f"{it.get('title')} | {fmt_prix(prix(it))} | {it.get('brand_title')} | {it.get('size_title')} | {it.get('status')} | publiée il y a {fmt_h(heures(pub, maintenant())) if pub else '?'} | photo {'oui' if (it.get('photo') or {}).get('url') else 'non'}")
     notifier("Exemples", f"Méthode : {DERNIERE_METHODE}\n" + "\n".join(exemples), tags="mag")
+    notifier("Données brutes", EXEMPLE_BRUT or "aucune", tags="mag")
     for it in items[:5]:
         pub = publie_le(it)
         age = fmt_h(heures(pub, maintenant())) if pub else "?"
