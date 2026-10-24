@@ -443,13 +443,14 @@ def passage():
     rapides = [a for a in ventes if (heures(a.get("publie"), a["vendu_vu"]) or 1e9) <= NOTIF_MAX_H]
     log(f"{len(ventes)} ventes détectées, dont {len(rapides)} en moins de {NOTIF_MAX_H} h")
     if len(rapides) > 5:
-        lignes = [f"{a['recherche']} · {fmt_prix(a['prix'])} · {fmt_h(heures(a.get('publie'), a['vendu_vu']))}" for a in rapides[:8]]
+        lignes = [f"{fmt_prix(a['prix'])} · {fmt_h(heures(a.get('publie'), a['vendu_vu']))} · {a['recherche']} · {a['titre']}" for a in rapides[:8]]
         notifier(f"{len(rapides)} ventes rapides", "\n".join(lignes), tags="fire")
     else:
         for a in rapides:
             delai = fmt_h(heures(a.get("publie"), a["vendu_vu"]))
-            notifier(f"Vendu en {delai} · {fmt_prix(a['prix'])}",
-                     f"{a['recherche']}\n{a['titre']}\n{a['marque']} · {a['taille']} · {a['etat_article']}",
+            details = " · ".join(x for x in (a["marque"], a["taille"], a["etat_article"]) if x)
+            notifier(f"{fmt_prix(a['prix'])} · VENDU en {delai} · {a['recherche']}",
+                     a["titre"] + (f"\n{details}" if details else ""),
                      lien=a["url"], photo=a["photo"])
 
     # Ménage
