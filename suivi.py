@@ -45,6 +45,11 @@ MAX_VERIFS_PAR_PASSAGE = 150 # pages d'annonces ouvertes au maximum par passage
 PAUSE = (2.0, 4.0)          # pause entre deux pages d'annonces (secondes)
 CONSERVATION_J = 10         # oubli des annonces plus anciennes
 ETATS = ["2"]               # états gardés pour toutes les recherches (2 = très bon état)
+CLASSEMENT_J = 7           # période du classement de la semaine
+CLASSEMENT_MIN_VENTES = 3  # ventes minimum pour qu'une recherche soit classée
+ACHAT_PART = 0.40          # prix d'achat max : 40 % du prix médian vendu…
+ACHAT_MARGE = 30           # … en gardant au moins 30 € de marge
+RESUME_JOUR, RESUME_HEURE = 0, 8  # résumé de la semaine le lundi (0) à partir de 8 h
 
 UA = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
@@ -442,6 +447,63 @@ def fmt_prix(p):
     return f"{p:.0f} €" if p == int(p) else f"{p:.2f} €".replace(".", ",")
 
 
+# ---------------------------------------------------------------- classement
+
+def prix_achat_max(median):
+    return max(0, min(ACHAT_PART * median, median - ACHAT_MARGE))
+
+
+def classement(etat, t0):
+    """Recherches de la semaine, de la plus rapide à vendre à la moins rapide, avec leur prix d'achat max."""
+    debut = t0 - CLASSEMENT_J * 86400
+    par = {}
+    for a in etat["annonces"].values():
+        if a.get("publie") and a["publie"] >= debut:
+            par.setdefault(a["recherche"], []).append(a)
+    out = []
+    for nom, lst in par.items():
+        vendus = [a for a in lst if a["statut"] == "vendu" and a["prix"] is not None]
+        if len(vendus) < CLASSEMENT_MIN_VENTES:
+            continue
+        termines = [a for a in lst if a["statut"] == "vendu" or t0 - a["publie"] >= 24 * 3600]
+        v24 = [a for a in vendus if (heures(a["publie"], a["vendu_vu"]) or 1e9) <= 24]
+        med = statistics.median(a["prix"] for a in vendus)
+        achat = prix_achat_max(med)
+        out.append({
+            "nom": nom, "vendus": len(vendus), "v24": len(v24),
+            "taux": len(v24) / len(termines) if termines else 0,
+            "median": med, "achat": achat,
+            "exemples": sorted(vendus, key=lambda a: heures(a["publie"], a["vendu_vu"]) or 1e9)[:3],
+        })
+    # Les ventes rapides comptent d'abord, puis la part vendue en moins de 24 h
+    out.sort(key=lambda c: (c["v24"] * c["taux"], c["v24"], c["median"]), reverse=True)
+    return out
+
+
+def adresse_page():
+    depot = os.environ.get("GITHUB_REPOSITORY", "")
+    if "/" not in depot:
+        return None
+    proprio, nom = depot.split("/", 1)
+    return f"https://{proprio.lower()}.github.io/{nom}/"
+
+
+def resume_semaine(etat, t0):
+    """Une fois par semaine : les 5 meilleures recherches et leur prix d'achat max, sur le sujet principal."""
+    ici = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris"))
+    semaine = ici.strftime("%G-%V")
+    if ici.weekday() != RESUME_JOUR or ici.hour < RESUME_HEURE or etat.get("resume_semaine") == semaine:
+        return
+    cl = classement(etat, t0)[:5]
+    if not cl:
+        return
+    lignes = [f"{k}. {c['nom']} · {c['v24']} vendues < 24 h ({100 * c['taux']:.0f} %) · médian {fmt_prix(c['median'])} → achat ≤ {fmt_prix(round(c['achat']))}"
+              for k, c in enumerate(cl, 1)]
+    photo = next((a["photo"] for a in cl[0]["exemples"] if a["photo"]), None)
+    notifier("Classement de la semaine", "\n".join(lignes), lien=adresse_page(), photo=photo, tags="trophy")
+    etat["resume_semaine"] = semaine
+
+
 # ---------------------------------------------------------------- passage
 
 def passage():
@@ -555,6 +617,9 @@ def passage():
     for i in [i for i, a in ann.items() if (a.get("publie") or a["vu"]) < limite]:
         del ann[i]
 
+    if not est_nuit():
+        resume_semaine(etat, t0)
+
     etat["dernier_passage"] = t0
     ecrire_etat(etat)
     ecrire_rapport(etat)
@@ -576,6 +641,8 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute
 .body a{margin-top:auto;color:var(--accent);font-weight:600;text-decoration:none}
 .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}.chips button{flex:none;font:600 13px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px}
 .chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}[hidden]{display:none!important}
+.vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
+.achat{font-weight:700;color:var(--accent)}
 @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}}"""
 
 
@@ -612,6 +679,21 @@ def ecrire_rapport(etat):
             f'{" · ♥ " + str(a["likes"]) if a.get("likes") else ""}</span>'
             f'<a href="{html.escape(a["url"])}" target="_blank" rel="noopener">Voir l’annonce ↗</a></div></article>')
 
+    cl = classement(etat, t0)
+    def vignette(a):
+        img = f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}">' if a["photo"] else ""
+        return f'<a href="{html.escape(a["url"])}" target="_blank" rel="noopener" title="{html.escape(a["titre"])} · {fmt_prix(a["prix"])}">{img}</a>'
+    lignes_cl = [
+        f"<tr><td>{k}</td><td>{html.escape(c['nom'])}</td><td class=\"achat\">≤ {fmt_prix(round(c['achat']))}</td><td>{fmt_prix(c['median'])}</td>"
+        f"<td>{c['v24']} / {c['vendus']}</td><td>{100 * c['taux']:.0f} %</td>"
+        f"<td><div class=\"vig\">{''.join(vignette(a) for a in c['exemples'])}</div></td></tr>"
+        for k, c in enumerate(cl, 1)]
+    section_cl = (
+        f"""<section><h2>Classement de la semaine</h2><div class="tbl"><table><thead><tr><th>#</th><th>Recherche</th><th>Achat max</th><th>Prix médian vendu</th>"""
+        f"""<th>Vendues &lt; 24 h</th><th>Taux 24 h</th><th>Plus rapides</th></tr></thead><tbody>"""
+        f"""{''.join(lignes_cl) or f'<tr><td colspan="7">Pas encore assez de ventes (au moins {CLASSEMENT_MIN_VENTES} par recherche sur {CLASSEMENT_J} jours).</td></tr>'}</tbody></table></div>"""
+        f"""<p class="sub">Sur les {CLASSEMENT_J} derniers jours. Achat max : {ACHAT_PART * 100:.0f} % du prix médian vendu, avec au moins {ACHAT_MARGE} € de marge. Les vignettes sont les ventes les plus rapides.</p></section>""")
+
     maj = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
     page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Ventes suivies</title>
@@ -619,6 +701,7 @@ def ecrire_rapport(etat):
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ventes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>{CSS}</style></head><body><div class="wrap">
 <header><h1>Ventes suivies</h1><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
 Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vente a été repérée : la vente réelle a eu lieu avant.</p></header>
+{section_cl}
 <section><h2>Par recherche</h2><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></section>

@@ -56,12 +56,20 @@ En haut de `suivi.py` :
 | `PAGES_PAR_RECHERCHE` | 2 | pages de 96 annonces lues par recherche |
 | `MAX_VERIFS_PAR_PASSAGE` | 150 | annonces revérifiées au maximum par passage |
 | `ETATS` | ["2"] | états gardés pour toutes les recherches, quels que soient ceux des adresses (2 = très bon état) |
+| `CLASSEMENT_J` | 7 | période du classement de la semaine |
+| `CLASSEMENT_MIN_VENTES` | 3 | ventes minimum pour qu'une recherche soit classée |
+| `ACHAT_PART` / `ACHAT_MARGE` | 0.40 / 30 | prix d'achat max : 40 % du prix médian vendu, avec au moins 30 € de marge |
+| `RESUME_JOUR`, `RESUME_HEURE` | 0, 8 | résumé de la semaine sur ntfy le lundi à partir de 8 h |
 
 ### Un sujet ntfy par marque
 
 Les ventes arrivent sur un sujet par marque : ton sujet suivi d'un tiret et de la marque (premier mot du nom de la recherche, en minuscules, sans accent ni symbole). Par exemple `ton-sujet-uniqlo`, `ton-sujet-sezane`, `ton-sujet-bash` pour Ba&sh. Abonne-toi dans ntfy aux marques voulues ; couper une marque = se désabonner de son sujet. Le sujet principal reçoit aussi toutes les ventes (plus les tests et diagnostics) : c'est lui qui sonne, la copie sur le sujet de la marque arrive en silence (priorité minimale).
 
 Pour ne plus recevoir de notifications sans arrêter le suivi, supprime le secret `NTFY_TOPIC`. Pour tout arrêter : **Actions › Suivi des ventes › ⋯ › Disable workflow**.
+
+### Classement de la semaine
+
+En haut de la page, les recherches sont classées sur les 7 derniers jours : ventes en moins de 24 h, part vendue en moins de 24 h, prix médian vendu et prix d'achat max, avec les photos des ventes les plus rapides. Chaque lundi matin, les 5 premières arrivent aussi sur le sujet ntfy principal, avec un lien vers la page.
 
 ## Limites
 
