@@ -48,6 +48,10 @@ En haut de `suivi.py` :
 | `PAGES_PAR_RECHERCHE` | 2 | pages de 96 annonces lues par recherche |
 | `MAX_VERIFS_PAR_PASSAGE` | 80 | annonces revérifiées au maximum par passage |
 
+### Un sujet ntfy par marque
+
+Les ventes arrivent sur un sujet par marque : ton sujet suivi d'un tiret et de la marque (premier mot du nom de la recherche, en minuscules, sans accent ni symbole). Par exemple `ton-sujet-uniqlo`, `ton-sujet-sezane`, `ton-sujet-bash` pour Ba&sh. Abonne-toi dans ntfy aux marques voulues ; couper une marque = se désabonner de son sujet. Le sujet principal ne reçoit plus que les tests et diagnostics.
+
 Pour ne plus recevoir de notifications sans arrêter le suivi, supprime le secret `NTFY_TOPIC`. Pour tout arrêter : **Actions › Suivi des ventes › ⋯ › Disable workflow**.
 
 ## Limites
