@@ -28,6 +28,7 @@ from bs4 import BeautifulSoup
 
 ICI = os.path.dirname(os.path.abspath(__file__))
 FICHIER_RECHERCHES = os.path.join(ICI, "recherches.txt")  # repli local, hors dépôt
+FICHIER_AJOUTEES = os.path.join(ICI, "recherches_ajoutees.txt")  # recherches en plus du secret, modifiables sur GitHub
 FICHIER_PRIX_MIN = os.path.join(ICI, "prix_min.txt")  # prix minimum par recherche, modifiable sur GitHub
 FICHIER_ETAT = os.path.join(ICI, "etat.json")
 FICHIER_RAPPORT = os.path.join(ICI, "docs", "index.html")
@@ -332,6 +333,10 @@ def lire_recherches():
     if not texte.strip() and os.path.exists(FICHIER_RECHERCHES):
         with open(FICHIER_RECHERCHES, encoding="utf-8") as f:
             texte = f.read()
+    if os.path.exists(FICHIER_AJOUTEES):
+        # Recherches ajoutées dans le dépôt, en plus de celles du secret
+        with open(FICHIER_AJOUTEES, encoding="utf-8") as f:
+            texte += "\n" + f.read()
     if True:
         for ligne in texte.splitlines():
             ligne = ligne.strip()

@@ -1,0 +1,3 @@
+# Recherches suivies en plus de celles du secret RECHERCHES, modifiables directement sur GitHub.
+# Une ligne « Nom affiché | adresse de la recherche Vinted ». Le premier mot du nom donne le sujet ntfy de la marque.
+Patagonia | https://www.vinted.fr/catalog?search_text=patagonia&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
