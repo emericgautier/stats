@@ -441,6 +441,10 @@ def passage():
     if not recherches:
         log("Aucune recherche : ajoute le secret RECHERCHES.")
         return
+    # Annonces des recherches retirées : oubliées tout de suite (plus de vérification ni de notification)
+    retirees = lire_retirees()
+    for i in [i for i, a in ann.items() if a["recherche"] in retirees]:
+        del ann[i]
     ouvrir_session()
 
     presents = set()
