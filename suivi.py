@@ -28,6 +28,7 @@ from bs4 import BeautifulSoup
 
 ICI = os.path.dirname(os.path.abspath(__file__))
 FICHIER_RECHERCHES = os.path.join(ICI, "recherches.txt")  # repli local, hors dépôt
+FICHIER_AJOUTEES = os.path.join(ICI, "recherches_ajoutees.txt")  # recherches en plus du secret, modifiables sur GitHub
 FICHIER_PRIX_MIN = os.path.join(ICI, "prix_min.txt")  # prix minimum par recherche, modifiable sur GitHub
 FICHIER_RETIREES = os.path.join(ICI, "recherches_retirees.txt")  # recherches à ne plus suivre
 FICHIER_ETAT = os.path.join(ICI, "etat.json")
@@ -76,7 +77,7 @@ def params_depuis_url(url):
         k = k.replace("[]", "")
         if k == "catalog":
             k = "catalog_ids"
-        if k in ("time", "search_id", "page", "per_page", "order", "disabled_personalization"):
+        if k in ("time", "search_id", "page", "per_page", "order", "disabled_personalization", "marque"):
             continue
         p.setdefault(k, []).append(v)
     p = {k: ",".join(v) for k, v in p.items()}
@@ -87,9 +88,18 @@ def params_depuis_url(url):
 def url_page(url, page):
     """Même recherche, triée des plus récentes, à la page voulue."""
     u = urlsplit(url)
-    q = [(k, v) for k, v in parse_qsl(u.query) if k not in ("page", "order", "time", "search_id")]
+    q = [(k, v) for k, v in parse_qsl(u.query) if k not in ("page", "order", "time", "search_id", "marque")]
     q += [("order", "newest_first"), ("page", str(page))]
     return f"{u.scheme}://{u.netloc}{u.path}?{urlencode(q)}"
+
+
+def garder_marque(items, url):
+    """Paramètre maison « marque=… » dans l'adresse : ne garde que les annonces de cette marque exacte
+    (utile quand le mot-clé est un mot courant, ex. Soeur)."""
+    m = dict(parse_qsl(urlsplit(url).query)).get("marque", "").strip().lower()
+    if not m:
+        return items
+    return [it for it in items if (it.get("brand_title") or "").strip().lower() == m]
 
 
 def ts_photo(url):
@@ -333,6 +343,10 @@ def lire_recherches():
     if not texte.strip() and os.path.exists(FICHIER_RECHERCHES):
         with open(FICHIER_RECHERCHES, encoding="utf-8") as f:
             texte = f.read()
+    if os.path.exists(FICHIER_AJOUTEES):
+        # Recherches ajoutées dans le dépôt, en plus de celles du secret
+        with open(FICHIER_AJOUTEES, encoding="utf-8") as f:
+            texte += "\n" + f.read()
     if True:
         for ligne in texte.splitlines():
             ligne = ligne.strip()
@@ -436,7 +450,7 @@ def passage():
         try:
             for page in range(1, PAGES_PAR_RECHERCHE + 1):
                 items = chercher(url, page)
-                for it in items:
+                for it in garder_marque(items, url):
                     i = str(it["id"])
                     presents.add(i)
                     if i in ann:
