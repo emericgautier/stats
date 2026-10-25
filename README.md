@@ -37,6 +37,10 @@ GitHub ne réaffiche jamais un secret : c'est ton fichier `recherches.txt` qui f
 
 Pas besoin de toucher au secret : ouvre `prix_min.txt` dans le dépôt, crayon ✏️, une ligne `Nom de la recherche | prix`, puis **Commit changes**. Ce prix remplace celui de l'adresse dès le passage suivant ; supprimer la ligne remet celui de l'adresse.
 
+## Retirer une recherche
+
+Ouvre `recherches_retirees.txt` dans le dépôt, crayon ✏️, ajoute le nom de la recherche (exactement comme dans le secret), puis **Commit changes**. Elle n'est plus suivie dès le passage suivant ; supprimer la ligne la remet en route.
+
 ## Réglages
 
 En haut de `suivi.py` :
