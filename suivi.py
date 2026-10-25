@@ -18,6 +18,7 @@ import re
 import statistics
 import sys
 import time
+import unicodedata
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from urllib.parse import parse_qsl, urlencode, urlsplit
@@ -292,19 +293,35 @@ def statut_page(url):
 
 # ---------------------------------------------------------------- notifications
 
-def notifier(titre, message, lien=None, photo=None, tags="moneybag"):
+def marque_cle(nom_recherche):
+    """Marque d'une recherche (premier mot du nom), pour son sujet ntfy : « Sézane sweat » → sezane."""
+    mot = (nom_recherche.split() or [""])[0]
+    mot = unicodedata.normalize("NFKD", mot).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]", "", mot) or "autre"
+
+
+def notifier(titre, message, lien=None, photo=None, tags="moneybag", marque=None):
+    """Envoie sur le sujet principal, ou sur le sujet de la marque (sujet-marque) si elle est donnée."""
     if not NTFY_TOPIC:
         log(f"   (pas de NTFY_TOPIC) {titre} — {message}")
         return
+    sujet = f"{NTFY_TOPIC}-{marque}" if marque else NTFY_TOPIC
     h = {"Title": titre.encode("utf-8"), "Tags": tags}
     if lien:
         h["Click"] = lien
     if photo:
         h["Attach"] = photo
     try:
-        requests.post(f"https://ntfy.sh/{NTFY_TOPIC}", data=message.encode("utf-8"), headers=h, timeout=15)
+        requests.post(f"https://ntfy.sh/{sujet}", data=message.encode("utf-8"), headers=h, timeout=15)
     except requests.RequestException as e:
         log(f"   Notification non envoyée : {e}")
+
+
+def par_marque(annonces):
+    out = {}
+    for a in annonces:
+        out.setdefault(marque_cle(a["recherche"]), []).append(a)
+    return out
 
 
 # ---------------------------------------------------------------- état
@@ -476,21 +493,23 @@ def passage():
         rapides = []
     elif etat.get("nuit"):
         nuit = [ann[i] for i in etat.pop("nuit") if i in ann]
-        if nuit:
-            nuit.sort(key=lambda a: heures(a.get("publie"), a["vendu_vu"]) or 1e9)
-            lignes = [f"{fmt_prix(a['prix'])} · {fmt_h(heures(a.get('publie'), a['vendu_vu']))} · {a['recherche']} · {a['titre']}" for a in nuit[:10]]
-            notifier(f"Cette nuit : {len(nuit)} vente{'s' if len(nuit) > 1 else ''} rapide{'s' if len(nuit) > 1 else ''}",
-                     "\n".join(lignes), lien=nuit[0]["url"], photo=nuit[0]["photo"], tags="sunrise")
-    if len(rapides) > 5:
-        lignes = [f"{fmt_prix(a['prix'])} · {fmt_h(heures(a.get('publie'), a['vendu_vu']))} · {a['recherche']} · {a['titre']}" for a in rapides[:8]]
-        notifier(f"{len(rapides)} ventes rapides", "\n".join(lignes), tags="fire")
-    else:
-        for a in rapides:
+        for marque, lst in par_marque(nuit).items():
+            lst.sort(key=lambda a: heures(a.get("publie"), a["vendu_vu"]) or 1e9)
+            lignes = [f"{fmt_prix(a['prix'])} · {fmt_h(heures(a.get('publie'), a['vendu_vu']))} · {a['recherche']} · {a['titre']}" for a in lst[:10]]
+            notifier(f"Cette nuit : {len(lst)} vente{'s' if len(lst) > 1 else ''} rapide{'s' if len(lst) > 1 else ''} · {lst[0]['recherche'].split()[0]}",
+                     "\n".join(lignes), lien=lst[0]["url"], photo=lst[0]["photo"], tags="sunrise", marque=marque)
+    # Une notification par vente, sur le sujet de sa marque ; regroupées au-delà de 5 pour une même marque
+    for marque, lst in par_marque(rapides).items():
+        if len(lst) > 5:
+            lignes = [f"{fmt_prix(a['prix'])} · {fmt_h(heures(a.get('publie'), a['vendu_vu']))} · {a['recherche']} · {a['titre']}" for a in lst[:8]]
+            notifier(f"{len(lst)} ventes rapides · {lst[0]['recherche'].split()[0]}", "\n".join(lignes), tags="fire", marque=marque)
+            continue
+        for a in lst:
             delai = fmt_h(heures(a.get("publie"), a["vendu_vu"]))
             details = " · ".join(x for x in (a["marque"], a["taille"], a["etat_article"]) if x)
             notifier(f"{fmt_prix(a['prix'])} · VENDU en {delai} · {a['recherche']}",
                      a["titre"] + (f"\n{details}" if details else ""),
-                     lien=a["url"], photo=a["photo"])
+                     lien=a["url"], photo=a["photo"], marque=marque)
 
     # Ménage
     limite = t0 - CONSERVATION_J * 86400
