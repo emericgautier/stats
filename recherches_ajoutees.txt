@@ -7,3 +7,4 @@ Balzac Paris | https://www.vinted.fr/catalog?catalog[]=4&brand_ids[]=130332&stat
 Soeur | https://www.vinted.fr/catalog?catalog[]=4&brand_ids[]=18751&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
 Ba&sh | https://www.vinted.fr/catalog?catalog[]=4&brand_ids[]=3697&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
 Sézane | https://www.vinted.fr/catalog?catalog[]=4&brand_ids[]=38437&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
+COS cachemire | https://www.vinted.fr/catalog?search_text=cachemire&catalog[]=4&brand_ids[]=2029&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
