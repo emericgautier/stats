@@ -640,8 +640,8 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute
 .b{position:absolute;padding:2px 7px;border-radius:4px;font-size:12px;font-weight:600}.p{bottom:8px;left:8px;background:var(--ink);color:var(--bg)}.d{top:8px;right:8px;background:var(--surface)}.d.hot{color:var(--hot)}
 .body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:3px;flex:1;font-size:13px}.t{font-weight:600}.m{color:var(--muted);font-size:12px}
 .body a{margin-top:auto;color:var(--accent);font-weight:600;text-decoration:none}
-.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}.chips button{flex:none;font:600 13px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px}
-.chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}[hidden]{display:none!important}
+.filtres{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.filtres select{flex:1 1 220px;min-width:0;font:600 16px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+[hidden]{display:none!important}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
 .achat{font-weight:700;color:var(--accent)}
 @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}}"""
@@ -706,17 +706,16 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <section><h2>Par recherche</h2><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></section>
-<section><h2>Vendues ({len(vendus)})</h2><div class="chips" id="chips-m"></div><div class="chips" id="chips"></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
+<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f-m" aria-label="Marque" hidden></select><select id="f-r" aria-label="Recherche" hidden></select></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
 <script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),choix={{r:'',m:''}};
 function cle(e,a){{return a==='m'?(e.dataset.m||'').toLowerCase():e.dataset.r}}
 function appliquer(){{cartes.forEach(function(e){{e.hidden=(!!choix.r&&cle(e,'r')!==choix.r)||(!!choix.m&&cle(e,'m')!==choix.m)}})}}
-function rangee(id,a,tout){{var c=document.getElementById(id),n={{}},nom={{}};
+function menu(id,a,tout){{var c=document.getElementById(id),n={{}},nom={{}};
 cartes.forEach(function(e){{var k=cle(e,a);if(!k)return;n[k]=(n[k]||0)+1;nom[k]=nom[k]||(a==='m'?e.dataset.m:k)}});
-var k=Object.keys(n).sort(function(x,y){{return n[y]-n[x]||nom[x].localeCompare(nom[y])}});if(k.length<2)return;
-[''].concat(k).forEach(function(r,i){{var b=document.createElement('button');b.type='button';
-b.textContent=(r?nom[r]:tout)+' ('+(r?n[r]:cartes.length)+')';b.setAttribute('aria-pressed',i===0);
-b.onclick=function(){{c.querySelectorAll('button').forEach(function(x){{x.setAttribute('aria-pressed',x===b)}});choix[a]=r;appliquer()}};c.appendChild(b)}})}}
-rangee('chips-m','m','Toutes marques');rangee('chips','r','Toutes recherches')}})();</script></body></html>"""
+var k=Object.keys(n).sort(function(x,y){{return nom[x].localeCompare(nom[y],'fr')}});if(k.length<2)return;
+[''].concat(k).forEach(function(r){{var o=document.createElement('option');o.value=r;o.textContent=(r?nom[r]:tout)+' ('+(r?n[r]:cartes.length)+')';c.appendChild(o)}});
+c.hidden=false;c.onchange=function(){{choix[a]=c.value;appliquer()}}}}
+menu('f-m','m','Toutes les marques');menu('f-r','r','Toutes les recherches')}})();</script></body></html>"""
     os.makedirs(os.path.dirname(FICHIER_RAPPORT), exist_ok=True)
     with open(FICHIER_RAPPORT, "w", encoding="utf-8") as f:
         f.write(page)
