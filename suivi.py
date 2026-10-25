@@ -548,7 +548,7 @@ def ecrire_rapport(etat):
         img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" '
                f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
         cartes.append(
-            f'<article class="card" data-r="{html.escape(a["recherche"])}"><div class="ph">{img}<span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
+            f'<article class="card" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}"><div class="ph">{img}<span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
             f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="m">{html.escape(a["recherche"])}</span>'
             f'<span class="t">{html.escape(a["titre"])}</span><span class="m">{html.escape(" · ".join(x for x in (a["marque"], a["taille"], a["etat_article"]) if x))}'
             f'{" · ♥ " + str(a["likes"]) if a.get("likes") else ""}</span>'
@@ -564,13 +564,17 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <section><h2>Par recherche</h2><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></section>
-<section><h2>Vendues ({len(vendus)})</h2><div class="chips" id="chips"></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
-<script>(function(){{var g=document.getElementById('grid'),c=document.getElementById('chips'),n={{}};
-g.querySelectorAll('.card').forEach(function(e){{n[e.dataset.r]=(n[e.dataset.r]||0)+1}});
-var k=Object.keys(n);if(k.length<2)return;['' ].concat(k).forEach(function(r,i){{var b=document.createElement('button');b.type='button';
-b.textContent=(r||'Tout')+' ('+(r?n[r]:g.children.length)+')';b.setAttribute('aria-pressed',i===0);
-b.onclick=function(){{c.querySelectorAll('button').forEach(function(x){{x.setAttribute('aria-pressed',x===b)}});
-g.querySelectorAll('.card').forEach(function(e){{e.hidden=!!r&&e.dataset.r!==r}})}};c.appendChild(b)}})}})();</script></body></html>"""
+<section><h2>Vendues ({len(vendus)})</h2><div class="chips" id="chips-m"></div><div class="chips" id="chips"></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
+<script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),choix={{r:'',m:''}};
+function cle(e,a){{return a==='m'?(e.dataset.m||'').toLowerCase():e.dataset.r}}
+function appliquer(){{cartes.forEach(function(e){{e.hidden=(!!choix.r&&cle(e,'r')!==choix.r)||(!!choix.m&&cle(e,'m')!==choix.m)}})}}
+function rangee(id,a,tout){{var c=document.getElementById(id),n={{}},nom={{}};
+cartes.forEach(function(e){{var k=cle(e,a);if(!k)return;n[k]=(n[k]||0)+1;nom[k]=nom[k]||(a==='m'?e.dataset.m:k)}});
+var k=Object.keys(n).sort(function(x,y){{return n[y]-n[x]||nom[x].localeCompare(nom[y])}});if(k.length<2)return;
+[''].concat(k).forEach(function(r,i){{var b=document.createElement('button');b.type='button';
+b.textContent=(r?nom[r]:tout)+' ('+(r?n[r]:cartes.length)+')';b.setAttribute('aria-pressed',i===0);
+b.onclick=function(){{c.querySelectorAll('button').forEach(function(x){{x.setAttribute('aria-pressed',x===b)}});choix[a]=r;appliquer()}};c.appendChild(b)}})}}
+rangee('chips-m','m','Toutes marques');rangee('chips','r','Toutes recherches')}})();</script></body></html>"""
     os.makedirs(os.path.dirname(FICHIER_RAPPORT), exist_ok=True)
     with open(FICHIER_RAPPORT, "w", encoding="utf-8") as f:
         f.write(page)
