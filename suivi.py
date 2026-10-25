@@ -49,6 +49,7 @@ CLASSEMENT_J = 7           # période du classement de la semaine
 CLASSEMENT_MIN_VENTES = 3  # ventes minimum pour qu'une recherche soit classée
 ACHAT_PART = 0.40          # prix d'achat max : 40 % du prix médian vendu…
 ACHAT_MARGE = 30           # … en gardant au moins 30 € de marge
+COPIE_MARQUE = False        # True : copie de chaque vente sur le sujet de sa marque (sujet-marque) en plus du sujet principal
 RESUME_JOUR, RESUME_HEURE = 0, 8  # résumé de la semaine le lundi (0) à partir de 8 h
 
 UA = [
@@ -318,7 +319,7 @@ def marque_cle(nom_recherche):
 
 
 def notifier(titre, message, lien=None, photo=None, tags="moneybag", marque=None):
-    """Envoie sur le sujet principal et, si une marque est donnée, aussi en silence sur le sujet de la marque (sujet-marque)."""
+    """Envoie sur le sujet principal ; avec COPIE_MARQUE, aussi en silence sur le sujet de la marque (sujet-marque)."""
     if not NTFY_TOPIC:
         log(f"   (pas de NTFY_TOPIC) {titre} — {message}")
         return
@@ -327,7 +328,7 @@ def notifier(titre, message, lien=None, photo=None, tags="moneybag", marque=None
         h["Click"] = lien
     if photo:
         h["Attach"] = photo
-    for sujet in [NTFY_TOPIC] + ([f"{NTFY_TOPIC}-{marque}"] if marque else []):
+    for sujet in [NTFY_TOPIC] + ([f"{NTFY_TOPIC}-{marque}"] if marque and COPIE_MARQUE else []):
         # Une seule alerte : la copie sur le sujet de la marque arrive sans son ni vibration (priorité minimale)
         hs = h if sujet == NTFY_TOPIC else {**h, "Priority": "min"}
         try:
