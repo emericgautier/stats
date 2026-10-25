@@ -28,6 +28,7 @@ from bs4 import BeautifulSoup
 ICI = os.path.dirname(os.path.abspath(__file__))
 FICHIER_RECHERCHES = os.path.join(ICI, "recherches.txt")  # repli local, hors dépôt
 FICHIER_PRIX_MIN = os.path.join(ICI, "prix_min.txt")  # prix minimum par recherche, modifiable sur GitHub
+FICHIER_RETIREES = os.path.join(ICI, "recherches_retirees.txt")  # recherches à ne plus suivre
 FICHIER_ETAT = os.path.join(ICI, "etat.json")
 FICHIER_RAPPORT = os.path.join(ICI, "docs", "index.html")
 
@@ -326,6 +327,8 @@ def lire_recherches():
             else:
                 nom, url = ligne, ligne
             out.append((nom, url))
+    retirees = lire_retirees()
+    out = [(nom, url) for nom, url in out if nom not in retirees]
     prix_min = lire_prix_min()
     out = [(nom, avec_prix_min(url, prix_min[nom]) if nom in prix_min else url) for nom, url in out]
     if out and not BASE:
@@ -348,6 +351,14 @@ def lire_prix_min():
                 if nom and re.fullmatch(r"\d+(?:\.\d+)?", p):
                     out[nom] = p
     return out
+
+
+def lire_retirees():
+    """Noms des recherches à ignorer (un par ligne)."""
+    if not os.path.exists(FICHIER_RETIREES):
+        return set()
+    with open(FICHIER_RETIREES, encoding="utf-8") as f:
+        return {l.strip() for l in f if l.strip() and not l.strip().startswith("#")}
 
 
 def avec_prix_min(url, p):
