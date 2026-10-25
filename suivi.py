@@ -642,6 +642,9 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute
 .body a{margin-top:auto;color:var(--accent);font-weight:600;text-decoration:none}
 .filtres{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.filtres select{flex:1 1 220px;min-width:0;font:600 16px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
 [hidden]{display:none!important}
+img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
+.vue img{max-width:100%;max-height:calc(100% - 120px);object-fit:contain;border-radius:6px}.vue p{color:#fff;margin:0;font-size:14px;text-align:center}
+.vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
 .achat{font-weight:700;color:var(--accent)}
 @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}}"""
@@ -667,11 +670,15 @@ def ecrire_rapport(etat):
             f"<tr><td>{html.escape(nom)}</td><td>{len(lst)}</td><td>{len(vendus)}</td><td>{len(v24)}</td><td>{taux}</td>"
             f"<td>{fmt_h(statistics.median(delais)) if delais else '–'}</td><td>{fmt_prix(statistics.median(prixv)) if prixv else '–'}</td></tr>")
 
+    def zoom(a):
+        """Données de la visionneuse : la photo s'ouvre en grand, avec un bouton vers l'annonce."""
+        return f'data-u="{html.escape(a["url"])}" data-t="{html.escape(a["titre"])} · {fmt_prix(a["prix"])}"'
+
     vendus = sorted([a for a in ann if a["statut"] == "vendu"], key=lambda a: a["vendu_vu"], reverse=True)
     cartes = []
     for a in vendus:
         h = heures(a.get("publie"), a["vendu_vu"])
-        img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" '
+        img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" {zoom(a)} '
                f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
         cartes.append(
             f'<article class="card" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}"><div class="ph">{img}<span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
@@ -682,7 +689,7 @@ def ecrire_rapport(etat):
 
     cl = classement(etat, t0)
     def vignette(a):
-        img = f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}">' if a["photo"] else ""
+        img = f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" {zoom(a)}>' if a["photo"] else ""
         return f'<a href="{html.escape(a["url"])}" target="_blank" rel="noopener" title="{html.escape(a["titre"])} · {fmt_prix(a["prix"])}">{img}</a>'
     lignes_cl = [
         f"<tr><td>{k}</td><td>{html.escape(c['nom'])}</td><td class=\"achat\">≤ {fmt_prix(round(c['achat']))}</td><td>{fmt_prix(c['median'])}</td>"
@@ -707,6 +714,7 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></section>
 <section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f-m" aria-label="Marque" hidden></select><select id="f-r" aria-label="Recherche" hidden></select></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
+<div class="vue" id="vue" hidden><button type="button" aria-label="Fermer">×</button><img alt="" referrerpolicy="no-referrer"><p></p><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div>
 <script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),choix={{r:'',m:''}};
 function cle(e,a){{return a==='m'?(e.dataset.m||'').toLowerCase():e.dataset.r}}
 function appliquer(){{cartes.forEach(function(e){{e.hidden=(!!choix.r&&cle(e,'r')!==choix.r)||(!!choix.m&&cle(e,'m')!==choix.m)}})}}
@@ -715,7 +723,13 @@ cartes.forEach(function(e){{var k=cle(e,a);if(!k)return;n[k]=(n[k]||0)+1;nom[k]=
 var k=Object.keys(n).sort(function(x,y){{return nom[x].localeCompare(nom[y],'fr')}});if(k.length<2)return;
 [''].concat(k).forEach(function(r){{var o=document.createElement('option');o.value=r;o.textContent=(r?nom[r]:tout)+' ('+(r?n[r]:cartes.length)+')';c.appendChild(o)}});
 c.hidden=false;c.onchange=function(){{choix[a]=c.value;appliquer()}}}}
-menu('f-m','m','Toutes les marques');menu('f-r','r','Toutes les recherches')}})();</script></body></html>"""
+menu('f-m','m','Toutes les marques');menu('f-r','r','Toutes les recherches')}})();
+(function(){{var v=document.getElementById('vue'),im=v.querySelector('img'),t=v.querySelector('p'),l=v.querySelector('a');
+function fermer(){{v.hidden=true;im.removeAttribute('src')}}
+document.addEventListener('click',function(e){{var x=e.target.closest('img[data-u]');if(!x)return;e.preventDefault();
+im.src=x.currentSrc||x.src;t.textContent=x.dataset.t;l.href=x.dataset.u;v.hidden=false}});
+v.addEventListener('click',function(e){{if(e.target===v||e.target.tagName==='BUTTON')fermer()}});
+document.addEventListener('keydown',function(e){{if(e.key==='Escape')fermer()}})}})();</script></body></html>"""
     os.makedirs(os.path.dirname(FICHIER_RAPPORT), exist_ok=True)
     with open(FICHIER_RAPPORT, "w", encoding="utf-8") as f:
         f.write(page)
