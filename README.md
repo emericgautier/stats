@@ -61,9 +61,9 @@ En haut de `suivi.py` :
 | `ACHAT_PART` / `ACHAT_MARGE` | 0.40 / 30 | prix d'achat max : 40 % du prix médian vendu, avec au moins 30 € de marge |
 | `RESUME_JOUR`, `RESUME_HEURE` | 0, 8 | résumé de la semaine sur ntfy le lundi à partir de 8 h |
 
-### Un sujet ntfy par marque
+### Notifications
 
-Les ventes arrivent sur un sujet par marque : ton sujet suivi d'un tiret et de la marque (premier mot du nom de la recherche, en minuscules, sans accent ni symbole). Par exemple `ton-sujet-uniqlo`, `ton-sujet-sezane`, `ton-sujet-bash` pour Ba&sh. Abonne-toi dans ntfy aux marques voulues ; couper une marque = se désabonner de son sujet. Le sujet principal reçoit aussi toutes les ventes (plus les tests et diagnostics) : c'est lui qui sonne, la copie sur le sujet de la marque arrive en silence (priorité minimale).
+Chaque vente arrive une seule fois, sur ton sujet principal. Pour filtrer par marque, utilise les boutons de la page. Pour recevoir aussi une copie silencieuse sur un sujet par marque (`ton-sujet-uniqlo`, `ton-sujet-bash` pour Ba&sh…), passe `COPIE_MARQUE` à `True` en tête de `suivi.py`.
 
 Pour ne plus recevoir de notifications sans arrêter le suivi, supprime le secret `NTFY_TOPIC`. Pour tout arrêter : **Actions › Suivi des ventes › ⋯ › Disable workflow**.
 
