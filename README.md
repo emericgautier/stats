@@ -35,7 +35,7 @@ GitHub ne réaffiche jamais un secret : c'est ton fichier `recherches.txt` qui f
 
 ## Ajouter une recherche sans toucher au secret
 
-Ouvre `recherches_ajoutees.txt` dans le dépôt, crayon ✏️, ajoute une ligne `Nom affiché | adresse de la recherche`, puis **Commit changes**. Elle est suivie dès le passage suivant, comme celles du secret. Son sujet ntfy de marque est le premier mot du nom (ex. `Patagonia` → `ton-sujet-patagonia`).
+Ouvre `recherches_ajoutees.txt` dans le dépôt, crayon ✏️, ajoute une ligne `Nom affiché | adresse de la recherche`, puis **Commit changes**. Elle est suivie dès le passage suivant, comme celles du secret. Son sujet ntfy de marque est le premier mot du nom (ex. `Patagonia` → `ton-sujet-patagonia`). Si le mot-clé est un mot courant, ajoute `&marque=Nom exact` à la fin de l'adresse : seules les annonces de cette marque sont gardées (ex. Soeur).
 
 ## Changer un prix minimum
 

@@ -4,3 +4,4 @@ Patagonia | https://www.vinted.fr/catalog?search_text=patagonia&status_ids[]=6&s
 American Vintage | https://www.vinted.fr/catalog?search_text=american%20vintage&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
 Sandro | https://www.vinted.fr/catalog?search_text=sandro&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
 Balzac Paris | https://www.vinted.fr/catalog?search_text=balzac%20paris&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
+Soeur | https://www.vinted.fr/catalog?search_text=soeur&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_from=50&currency=EUR&order=newest_first&marque=Soeur

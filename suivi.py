@@ -76,7 +76,7 @@ def params_depuis_url(url):
         k = k.replace("[]", "")
         if k == "catalog":
             k = "catalog_ids"
-        if k in ("time", "search_id", "page", "per_page", "order", "disabled_personalization"):
+        if k in ("time", "search_id", "page", "per_page", "order", "disabled_personalization", "marque"):
             continue
         p.setdefault(k, []).append(v)
     p = {k: ",".join(v) for k, v in p.items()}
@@ -87,9 +87,18 @@ def params_depuis_url(url):
 def url_page(url, page):
     """Même recherche, triée des plus récentes, à la page voulue."""
     u = urlsplit(url)
-    q = [(k, v) for k, v in parse_qsl(u.query) if k not in ("page", "order", "time", "search_id")]
+    q = [(k, v) for k, v in parse_qsl(u.query) if k not in ("page", "order", "time", "search_id", "marque")]
     q += [("order", "newest_first"), ("page", str(page))]
     return f"{u.scheme}://{u.netloc}{u.path}?{urlencode(q)}"
+
+
+def garder_marque(items, url):
+    """Paramètre maison « marque=… » dans l'adresse : ne garde que les annonces de cette marque exacte
+    (utile quand le mot-clé est un mot courant, ex. Soeur)."""
+    m = dict(parse_qsl(urlsplit(url).query)).get("marque", "").strip().lower()
+    if not m:
+        return items
+    return [it for it in items if (it.get("brand_title") or "").strip().lower() == m]
 
 
 def ts_photo(url):
@@ -430,7 +439,7 @@ def passage():
         try:
             for page in range(1, PAGES_PAR_RECHERCHE + 1):
                 items = chercher(url, page)
-                for it in items:
+                for it in garder_marque(items, url):
                     i = str(it["id"])
                     presents.add(i)
                     if i in ann:
