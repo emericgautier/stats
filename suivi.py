@@ -301,21 +301,20 @@ def marque_cle(nom_recherche):
 
 
 def notifier(titre, message, lien=None, photo=None, tags="moneybag", marque=None):
-    """Envoie sur le sujet principal, ou sur le sujet de la marque (sujet-marque) si elle est donnée."""
+    """Envoie sur le sujet principal et, si une marque est donnée, aussi sur le sujet de la marque (sujet-marque)."""
     if not NTFY_TOPIC:
         log(f"   (pas de NTFY_TOPIC) {titre} — {message}")
         return
-    sujet = f"{NTFY_TOPIC}-{marque}" if marque else NTFY_TOPIC
     h = {"Title": titre.encode("utf-8"), "Tags": tags}
     if lien:
         h["Click"] = lien
     if photo:
         h["Attach"] = photo
-    try:
-        requests.post(f"https://ntfy.sh/{sujet}", data=message.encode("utf-8"), headers=h, timeout=15)
-    except requests.RequestException as e:
-        log(f"   Notification non envoyée : {e}")
-
+    for sujet in [NTFY_TOPIC] + ([f"{NTFY_TOPIC}-{marque}"] if marque else []):
+        try:
+            requests.post(f"https://ntfy.sh/{sujet}", data=message.encode("utf-8"), headers=h, timeout=15)
+        except requests.RequestException as e:
+            log(f"   Notification non envoyée ({sujet}) : {e}")
 
 def par_marque(annonces):
     out = {}
