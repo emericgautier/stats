@@ -32,6 +32,8 @@ FICHIER_AJOUTEES = os.path.join(ICI, "recherches_ajoutees.txt")  # recherches en
 FICHIER_PRIX_MIN = os.path.join(ICI, "prix_min.txt")  # prix minimum par recherche, modifiable sur GitHub
 FICHIER_RETIREES = os.path.join(ICI, "recherches_retirees.txt")  # recherches à ne plus suivre
 FICHIER_ETAT = os.path.join(ICI, "etat.json")
+FICHIER_ETAT_ANCIEN = os.path.join(ICI, "etat_ancien.json")  # mémoire d'avant le retrait de recherches, relue une seule fois
+RESTAURER = ["Ba&sh sweat", "Sézane sweat", "Sézane trench"]  # recherches retirées dont on récupère les ventes passées
 FICHIER_RAPPORT = os.path.join(ICI, "docs", "index.html")
 
 BASE = ""  # déduit de la première recherche
@@ -423,6 +425,23 @@ def lire_etat():
         return {"annonces": {}}
 
 
+def restaurer_ventes(etat):
+    """Remet une fois les ventes des recherches de RESTAURER effacées lors de leur retrait."""
+    if etat.get("ventes_restaurees") or not os.path.exists(FICHIER_ETAT_ANCIEN):
+        return
+    try:
+        with open(FICHIER_ETAT_ANCIEN, encoding="utf-8") as f:
+            ancien = json.load(f).get("annonces", {})
+    except (OSError, ValueError):
+        return
+    ann = etat["annonces"]
+    remises = {i: a for i, a in ancien.items()
+               if a.get("recherche") in RESTAURER and a.get("statut") == "vendu" and i not in ann}
+    ann.update(remises)
+    etat["ventes_restaurees"] = True
+    log(f"{len(remises)} ventes passées remises ({', '.join(RESTAURER)})")
+
+
 def ecrire_etat(etat):
     with open(FICHIER_ETAT, "w", encoding="utf-8") as f:
         json.dump(etat, f, ensure_ascii=False, separators=(",", ":"))
@@ -515,9 +534,10 @@ def passage():
     if not recherches:
         log("Aucune recherche : ajoute le secret RECHERCHES.")
         return
-    # Annonces des recherches retirées : oubliées tout de suite (plus de vérification ni de notification)
+    restaurer_ventes(etat)
+    # Annonces des recherches retirées : plus de vérification ni de notification, seules les ventes restent sur la page
     retirees = lire_retirees()
-    for i in [i for i, a in ann.items() if a["recherche"] in retirees]:
+    for i in [i for i, a in ann.items() if a["recherche"] in retirees and a["statut"] != "vendu"]:
         del ann[i]
     ouvrir_session()
 
