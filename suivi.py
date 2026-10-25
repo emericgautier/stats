@@ -648,7 +648,7 @@ def passage():
 
 # ---------------------------------------------------------------- rapport
 
-CSS = """.haut{display:flex;align-items:center;justify-content:space-between;gap:12px}.haut button{font:inherit;font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:0;border-radius:99px;padding:8px 14px;cursor:pointer}
+CSS = """.haut{display:flex;align-items:center;justify-content:space-between;gap:12px}.tirer{position:fixed;top:0;left:50%;transform:translate(-50%,-48px);z-index:5;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:6px 12px;pointer-events:none}.haut button{font:inherit;font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:0;border-radius:99px;padding:8px 14px;cursor:pointer}
 :root{--bg:#f6f6f3;--surface:#fff;--ink:#1d2120;--muted:#646b68;--line:#dfe1dc;--accent:#2f5d50;--accent-soft:#e3ece8;--hot:#9a3b12;color-scheme:light}
 @media (prefers-color-scheme:dark){:root{--bg:#141716;--surface:#1d2120;--ink:#ecefec;--muted:#9aa29e;--line:#2e3431;--accent:#8cc2ad;--accent-soft:#22312b;--hot:#e3a06a;color-scheme:dark}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,sans-serif;padding:max(28px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
@@ -727,7 +727,7 @@ def ecrire_rapport(etat):
     page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Ventes suivies</title>
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icone-180.png"><meta name="theme-color" content="#2f5d50">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ventes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>{CSS}</style></head><body><div class="wrap">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ventes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>{CSS}</style></head><body><div class="tirer" id="tirer">↓ Tirer pour actualiser</div><div class="wrap">
 <header><div class="haut"><h1>Ventes suivies</h1><button type="button" id="actualiser">↻ Actualiser</button></div><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
 Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vente a été repérée : la vente réelle a eu lieu avant.</p></header>
 {section_cl}
@@ -753,6 +753,11 @@ v.addEventListener('click',function(e){{if(e.target===v||e.target.tagName==='BUT
 document.addEventListener('keydown',function(e){{if(e.key==='Escape')fermer()}})}})();
 (function(){{var t0=Date.now();function recharger(){{location.replace(location.pathname+'?t='+Date.now())}}
 document.getElementById('actualiser').onclick=recharger;
+var ind=document.getElementById('tirer'),y0=null,dy=0,SEUIL=90;
+function poser(d){{ind.style.transform='translate(-50%,'+(Math.min(d,SEUIL+20)-48)+'px)';ind.textContent=d>=SEUIL?'↻ Relâcher pour actualiser':'↓ Tirer pour actualiser'}}
+document.addEventListener('touchstart',function(e){{y0=(window.scrollY<=0&&document.getElementById('vue').hidden)?e.touches[0].clientY:null;dy=0}},{{passive:true}});
+document.addEventListener('touchmove',function(e){{if(y0===null)return;dy=e.touches[0].clientY-y0;if(dy>0)poser(dy)}},{{passive:true}});
+document.addEventListener('touchend',function(){{if(y0===null)return;y0=null;if(dy>=SEUIL){{ind.textContent='↻ Actualisation…';recharger()}}else poser(0)}});
 document.addEventListener('visibilitychange',function(){{if(!document.hidden&&Date.now()-t0>120000)recharger()}})}})();</script></body></html>"""
     os.makedirs(os.path.dirname(FICHIER_RAPPORT), exist_ok=True)
     with open(FICHIER_RAPPORT, "w", encoding="utf-8") as f:
