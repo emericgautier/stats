@@ -44,6 +44,7 @@ PAGES_PAR_RECHERCHE = 1     # 96 annonces les plus récentes, largement assez to
 MAX_VERIFS_PAR_PASSAGE = 80 # pages d'annonces ouvertes au maximum par passage
 PAUSE = (2.0, 4.0)          # pause entre deux pages d'annonces (secondes)
 CONSERVATION_J = 10         # oubli des annonces plus anciennes
+ETATS = ["2"]               # états gardés pour toutes les recherches (2 = très bon état)
 
 UA = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
@@ -361,6 +362,7 @@ def lire_recherches():
     out = [(nom, url) for nom, url in out if nom not in retirees]
     prix_min = lire_prix_min()
     out = [(nom, avec_prix_min(url, prix_min[nom]) if nom in prix_min else url) for nom, url in out]
+    out = [(nom, avec_etats(url)) for nom, url in out]
     if out and not BASE:
         u = urlsplit(out[0][1])
         BASE = f"{u.scheme}://{u.netloc}"
@@ -389,6 +391,13 @@ def lire_retirees():
         return set()
     with open(FICHIER_RETIREES, encoding="utf-8") as f:
         return {l.strip() for l in f if l.strip() and not l.strip().startswith("#")}
+
+
+def avec_etats(url):
+    """Impose les états de ETATS à l'adresse de recherche, quels que soient ceux qu'elle contient."""
+    u = urlsplit(url)
+    q = [(k, v) for k, v in parse_qsl(u.query) if k not in ("status_ids[]", "status_ids")] + [("status_ids[]", e) for e in ETATS]
+    return f"{u.scheme}://{u.netloc}{u.path}?{urlencode(q)}"
 
 
 def avec_prix_min(url, p):

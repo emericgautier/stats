@@ -55,6 +55,7 @@ En haut de `suivi.py` :
 | `FENETRE_SUIVI_H` | 72 | durée de suivi d'une annonce après sa publication |
 | `PAGES_PAR_RECHERCHE` | 2 | pages de 96 annonces lues par recherche |
 | `MAX_VERIFS_PAR_PASSAGE` | 80 | annonces revérifiées au maximum par passage |
+| `ETATS` | ["2"] | états gardés pour toutes les recherches, quels que soient ceux des adresses (2 = très bon état) |
 
 ### Un sujet ntfy par marque
 
