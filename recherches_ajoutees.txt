@@ -5,3 +5,5 @@ American Vintage | https://www.vinted.fr/catalog?search_text=american%20vintage&
 Sandro | https://www.vinted.fr/catalog?search_text=sandro&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
 Balzac Paris | https://www.vinted.fr/catalog?search_text=balzac%20paris&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
 Soeur | https://www.vinted.fr/catalog?search_text=soeur&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_from=50&currency=EUR&order=newest_first&marque=Soeur
+Ba&sh | https://www.vinted.fr/catalog?search_text=ba%26sh&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
+Sézane | https://www.vinted.fr/catalog?search_text=sezane&status_ids[]=6&status_ids[]=1&status_ids[]=2&price_from=50&currency=EUR&order=newest_first
