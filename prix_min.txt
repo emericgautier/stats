@@ -1,0 +1,5 @@
+# Prix minimum par recherche, prioritaire sur celui de l'adresse du secret RECHERCHES.
+# Une ligne « Nom de la recherche | prix ». Le nom doit être exactement celui du secret.
+Uniqlo doudoune | 60
+Uniqlo Harrington | 45
+Uniqlo coupe-vent | 45

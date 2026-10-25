@@ -27,6 +27,7 @@ from bs4 import BeautifulSoup
 
 ICI = os.path.dirname(os.path.abspath(__file__))
 FICHIER_RECHERCHES = os.path.join(ICI, "recherches.txt")  # repli local, hors dépôt
+FICHIER_PRIX_MIN = os.path.join(ICI, "prix_min.txt")  # prix minimum par recherche, modifiable sur GitHub
 FICHIER_ETAT = os.path.join(ICI, "etat.json")
 FICHIER_RAPPORT = os.path.join(ICI, "docs", "index.html")
 
@@ -325,10 +326,35 @@ def lire_recherches():
             else:
                 nom, url = ligne, ligne
             out.append((nom, url))
+    prix_min = lire_prix_min()
+    out = [(nom, avec_prix_min(url, prix_min[nom]) if nom in prix_min else url) for nom, url in out]
     if out and not BASE:
         u = urlsplit(out[0][1])
         BASE = f"{u.scheme}://{u.netloc}"
     return out
+
+
+def lire_prix_min():
+    """Prix minimum par nom de recherche (lignes « Nom | prix »)."""
+    out = {}
+    if os.path.exists(FICHIER_PRIX_MIN):
+        with open(FICHIER_PRIX_MIN, encoding="utf-8") as f:
+            for ligne in f:
+                ligne = ligne.strip()
+                if not ligne or ligne.startswith("#") or "|" not in ligne:
+                    continue
+                nom, p = [x.strip() for x in ligne.rsplit("|", 1)]
+                p = p.replace("€", "").replace(",", ".").strip()
+                if nom and re.fullmatch(r"\d+(?:\.\d+)?", p):
+                    out[nom] = p
+    return out
+
+
+def avec_prix_min(url, p):
+    """Remplace le prix minimum de l'adresse de recherche."""
+    u = urlsplit(url)
+    q = [(k, v) for k, v in parse_qsl(u.query) if k != "price_from"] + [("price_from", p)]
+    return f"{u.scheme}://{u.netloc}{u.path}?{urlencode(q)}"
 
 
 def lire_etat():

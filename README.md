@@ -33,6 +33,10 @@ Les recherches ne sont pas dans le dépôt : elles sont dans le secret `RECHERCH
 
 GitHub ne réaffiche jamais un secret : c'est ton fichier `recherches.txt` qui fait foi.
 
+## Changer un prix minimum
+
+Pas besoin de toucher au secret : ouvre `prix_min.txt` dans le dépôt, crayon ✏️, une ligne `Nom de la recherche | prix`, puis **Commit changes**. Ce prix remplace celui de l'adresse dès le passage suivant ; supprimer la ligne remet celui de l'adresse.
+
 ## Réglages
 
 En haut de `suivi.py` :
