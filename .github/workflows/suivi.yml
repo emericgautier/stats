@@ -36,6 +36,15 @@ jobs:
           python-version: "3.12"
       - run: pip install requests beautifulsoup4
 
+      # Mémoire d'avant le retrait des recherches Ba&sh/Sézane en double (#16), pour en remettre les ventes
+      - name: Mémoire ancienne (lecture)
+        uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: etat.json
+          key: etat-40208461588
+      - run: if [ -f etat.json ]; then mv etat.json etat_ancien.json; fi
+
       - name: Mémoire du suivi (lecture)
         uses: actions/cache/restore@v4
         with:
