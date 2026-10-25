@@ -41,7 +41,7 @@ NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "").strip()
 FENETRE_SUIVI_H = 72        # durée de suivi d'une annonce après sa publication
 NOTIF_MAX_H = 24            # notifier seulement les ventes parties en moins de X heures
 PAGES_PAR_RECHERCHE = 1     # 96 annonces les plus récentes, largement assez toutes les 30 min
-MAX_VERIFS_PAR_PASSAGE = 80 # pages d'annonces ouvertes au maximum par passage
+MAX_VERIFS_PAR_PASSAGE = 150 # pages d'annonces ouvertes au maximum par passage
 PAUSE = (2.0, 4.0)          # pause entre deux pages d'annonces (secondes)
 CONSERVATION_J = 10         # oubli des annonces plus anciennes
 ETATS = ["2"]               # états gardés pour toutes les recherches (2 = très bon état)
@@ -313,7 +313,7 @@ def marque_cle(nom_recherche):
 
 
 def notifier(titre, message, lien=None, photo=None, tags="moneybag", marque=None):
-    """Envoie sur le sujet principal et, si une marque est donnée, aussi sur le sujet de la marque (sujet-marque)."""
+    """Envoie sur le sujet principal et, si une marque est donnée, aussi en silence sur le sujet de la marque (sujet-marque)."""
     if not NTFY_TOPIC:
         log(f"   (pas de NTFY_TOPIC) {titre} — {message}")
         return
@@ -323,8 +323,10 @@ def notifier(titre, message, lien=None, photo=None, tags="moneybag", marque=None
     if photo:
         h["Attach"] = photo
     for sujet in [NTFY_TOPIC] + ([f"{NTFY_TOPIC}-{marque}"] if marque else []):
+        # Une seule alerte : la copie sur le sujet de la marque arrive sans son ni vibration (priorité minimale)
+        hs = h if sujet == NTFY_TOPIC else {**h, "Priority": "min"}
         try:
-            requests.post(f"https://ntfy.sh/{sujet}", data=message.encode("utf-8"), headers=h, timeout=15)
+            requests.post(f"https://ntfy.sh/{sujet}", data=message.encode("utf-8"), headers=hs, timeout=15)
         except requests.RequestException as e:
             log(f"   Notification non envoyée ({sujet}) : {e}")
 
