@@ -368,6 +368,8 @@ def lire_recherches():
             else:
                 nom, url = ligne, ligne
             out.append((nom, url))
+    # Une recherche du fichier qui porte le nom d'une recherche du secret la remplace
+    out = list({nom: (nom, url) for nom, url in out}.values())
     retirees = lire_retirees()
     out = [(nom, url) for nom, url in out if nom not in retirees]
     prix_min = lire_prix_min()

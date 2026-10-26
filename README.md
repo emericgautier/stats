@@ -37,6 +37,8 @@ GitHub ne réaffiche jamais un secret : c'est ton fichier `recherches.txt` qui f
 
 Ouvre `recherches_ajoutees.txt` dans le dépôt, crayon ✏️, ajoute une ligne `Nom affiché | adresse de la recherche`, puis **Commit changes**. Elle est suivie dès le passage suivant, comme celles du secret. Son sujet ntfy de marque est le premier mot du nom (ex. `Patagonia` → `ton-sujet-patagonia`). Si le mot-clé est un mot courant, ajoute `&marque=Nom exact` à la fin de l'adresse : seules les annonces de cette marque sont gardées (ex. Soeur).
 
+Une ligne qui reprend exactement le nom d'une recherche du secret la remplace, en gardant son historique (ex. `Barbour matelassée`, passée au filtre marque Barbour).
+
 ## Changer un prix minimum
 
 Pas besoin de toucher au secret : ouvre `prix_min.txt` dans le dépôt, crayon ✏️, une ligne `Nom de la recherche | prix`, puis **Commit changes**. Ce prix remplace celui de l'adresse dès le passage suivant ; supprimer la ligne remet celui de l'adresse.
