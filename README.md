@@ -61,7 +61,8 @@ En haut de `suivi.py` :
 | `AFFAIRES` | True | chercher, pour chaque article vendu, le même en ligne à 40 % ou moins de son prix (section « Même article, 2,5× moins cher » en haut de la page) |
 | `MAX_AFFAIRES_PAR_PASSAGE` | 10 | recherches « même article » au maximum par passage (une page de résultats chacune) |
 | `AFFAIRES_RELANCE_H` / `AFFAIRES_FENETRE_H` | 12 / 72 | recherche relancée toutes les 12 h pendant 72 h après la vente |
-| `AFFAIRES_MOTS` | 2 | mots du titre vendu gardés pour la recherche (hors marque, couleur, taille) |
+| `AFFAIRES_MOTS` | 3 | mots du titre vendu gardés pour la recherche (hors marque, couleur, taille) |
+| `AFFAIRES_MEME_TAILLE` | True | ne garder que les annonces de la même taille que l'article vendu |
 | `NOTIF_AFFAIRES` | True | notification sur le sujet principal pour chaque nouvelle bonne affaire (pas la nuit) |
 | `CLASSEMENT_J` | 7 | période du classement de la semaine |
 | `CLASSEMENT_MIN_VENTES` | 3 | ventes minimum pour qu'une recherche soit classée |

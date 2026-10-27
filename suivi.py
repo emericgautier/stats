@@ -57,7 +57,8 @@ AFFAIRES = True             # chercher le même article à ≤ ACHAT_PART du pri
 MAX_AFFAIRES_PAR_PASSAGE = 10  # recherches « même article » au maximum par passage (une page chacune)
 AFFAIRES_RELANCE_H = 12     # relancer la recherche d'un article vendu toutes les X heures…
 AFFAIRES_FENETRE_H = 72     # … pendant X heures après sa vente
-AFFAIRES_MOTS = 2           # mots du titre gardés pour la recherche (en plus de la marque)
+AFFAIRES_MOTS = 3           # mots du titre gardés pour la recherche (en plus de la marque)
+AFFAIRES_MEME_TAILLE = True # ne garder que les annonces de la même taille que l'article vendu
 NOTIF_AFFAIRES = True       # notification pour chaque nouvelle bonne affaire (sujet principal)
 
 UA = [
@@ -588,6 +589,8 @@ def meme_article(it, a, cles):
         return False
     if a["marque"] and plier(it.get("brand_title")).strip() not in ("", plier(a["marque"]).strip()):
         return False
+    if AFFAIRES_MEME_TAILLE and a["taille"] and plier(it.get("size_title")).strip() != plier(a["taille"]).strip():
+        return False
     t = mots(it.get("title"))
     if MOTS_EXCLUS & set(t):
         return False
@@ -884,7 +887,7 @@ def ecrire_rapport(etat):
         f"""<div class="grid">{''.join(cartes_aff)}</div>""" if cartes_aff else
         """<section><h2>Même article, 2,5× moins cher</h2><p class="sub">Rien pour l’instant.</p>""") + (
         f"""<p class="sub">Pour chaque article vendu depuis moins de {AFFAIRES_FENETRE_H} h : annonces en ligne de la même marque, avec les mêmes mots-clés du titre
-(hors couleur et taille), en très bon état, à {ACHAT_PART * 100:.0f} % ou moins du prix de vente. Recherche relancée toutes les {AFFAIRES_RELANCE_H} h.
+(hors couleur), de la même taille, en très bon état, à {ACHAT_PART * 100:.0f} % ou moins du prix de vente. Recherche relancée toutes les {AFFAIRES_RELANCE_H} h.
 À vérifier avant achat : c’est le même type d’article, pas forcément le même modèle exact.</p></section>""")
     maj = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
     page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
