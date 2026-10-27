@@ -58,6 +58,11 @@ En haut de `suivi.py` :
 | `PAGES_PAR_RECHERCHE` | 2 | pages de 96 annonces lues par recherche |
 | `MAX_VERIFS_PAR_PASSAGE` | 250 | annonces revérifiées au maximum par passage |
 | `ETATS` | ["2"] | états gardés pour toutes les recherches, quels que soient ceux des adresses (2 = très bon état) |
+| `AFFAIRES` | True | chercher, pour chaque article vendu, le même en ligne à 40 % ou moins de son prix (section « Même article, 2,5× moins cher » en haut de la page) |
+| `MAX_AFFAIRES_PAR_PASSAGE` | 10 | recherches « même article » au maximum par passage (une page de résultats chacune) |
+| `AFFAIRES_RELANCE_H` / `AFFAIRES_FENETRE_H` | 12 / 72 | recherche relancée toutes les 12 h pendant 72 h après la vente |
+| `AFFAIRES_MOTS` | 2 | mots du titre vendu gardés pour la recherche (hors marque, couleur, taille) |
+| `NOTIF_AFFAIRES` | True | notification sur le sujet principal pour chaque nouvelle bonne affaire (pas la nuit) |
 | `CLASSEMENT_J` | 7 | période du classement de la semaine |
 | `CLASSEMENT_MIN_VENTES` | 3 | ventes minimum pour qu'une recherche soit classée |
 | `ACHAT_PART` / `ACHAT_MARGE` | 0.40 / 30 | prix d'achat max : 40 % du prix médian vendu, avec au moins 30 € de marge |

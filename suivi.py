@@ -53,6 +53,12 @@ ACHAT_PART = 0.40          # prix d'achat max : 40 % du prix médian vendu…
 ACHAT_MARGE = 30           # … en gardant au moins 30 € de marge
 COPIE_MARQUE = False        # True : copie de chaque vente sur le sujet de sa marque (sujet-marque) en plus du sujet principal
 RESUME_JOUR, RESUME_HEURE = 0, 8  # résumé de la semaine le lundi (0) à partir de 8 h
+AFFAIRES = True             # chercher le même article à ≤ ACHAT_PART du prix de chaque vente
+MAX_AFFAIRES_PAR_PASSAGE = 10  # recherches « même article » au maximum par passage (une page chacune)
+AFFAIRES_RELANCE_H = 12     # relancer la recherche d'un article vendu toutes les X heures…
+AFFAIRES_FENETRE_H = 72     # … pendant X heures après sa vente
+AFFAIRES_MOTS = 2           # mots du titre gardés pour la recherche (en plus de la marque)
+NOTIF_AFFAIRES = True       # notification pour chaque nouvelle bonne affaire (sujet principal)
 
 UA = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
@@ -526,6 +532,134 @@ def resume_semaine(etat, t0):
     etat["resume_semaine"] = semaine
 
 
+# ---------------------------------------------------------------- même article moins cher
+
+MOTS_VIDES = set("""
+a au aux avec ce d de des du en et l la le les ma mon ou par pour sa sans son sur un une
+femme femmes homme hommes mixte unisexe taille tailles t tu tbe tres bon bonne etat neuf neuve neufs
+comme porte portee jamais peu tres excellent parfait parfaite vintage original originale authentique
+veritable vrai vraie modele marque collection nouvelle nouveau lot article
+noir noire noirs bleu bleue marine navy blanc blanche ecru beige gris grise vert verte kaki rouge rose
+camel marron brun brune jaune orange violet bordeaux dore argent multicolore clair fonce
+""".split())
+MOTS_EXCLUS = set("""
+enfant enfants kids kid junior bebe fille garcon defaut defauts tache taches trou trous troue
+imitation inspire inspiree style type replica copie dupe
+""".split())
+
+
+def plier(t):
+    """Minuscules sans accents, pour comparer des titres."""
+    return unicodedata.normalize("NFKD", t or "").encode("ascii", "ignore").decode().lower()
+
+
+def mots(t):
+    return re.findall(r"[a-z0-9]+", plier(t))
+
+
+def mots_cles(titre, marque):
+    """Mots qui décrivent l'article (type, modèle), sans marque, taille, couleur ni mots vides (accents gardés)."""
+    marque_mots = set(mots(marque))
+    out, vus = [], []
+    for brut in re.findall(r"[\w'’-]+", titre or ""):
+        m = plier(brut).strip("'’-")
+        if (len(m) < 3 or m in MOTS_VIDES or m in marque_mots or m in vus
+                or re.fullmatch(r"x{0,4}[sml]|x{1,4}l|\d+|t\d+|\d+(ans|cm)", m)):
+            continue
+        vus.append(m)
+        out.append(brut.lower().strip("'’-"))
+    return out[:AFFAIRES_MOTS]
+
+
+def url_affaire(url, a, cles):
+    """Même recherche (marque, catégorie, état), avec les mots du titre et un prix maximum."""
+    u = urlsplit(url)
+    garde = [(k, v) for k, v in parse_qsl(u.query) if k not in ("search_text", "price_from", "price_to")]
+    a_filtre_marque = any(k.startswith("brand_ids") for k, _ in garde) or any(k == "marque" for k, _ in garde)
+    texte = " ".join(cles if a_filtre_marque or not a["marque"] else [a["marque"]] + cles)
+    garde += [("search_text", texte), ("price_to", str(int(ACHAT_PART * a["prix"])))]
+    return f"{u.scheme}://{u.netloc}{u.path}?{urlencode(garde)}"
+
+
+def meme_article(it, a, cles):
+    """L'annonce trouvée est-elle le même article, assez bon marché et sans mot exclu ?"""
+    p = prix(it)
+    if p is None or p <= 0 or p > ACHAT_PART * a["prix"] or str(it["id"]) == a["id"]:
+        return False
+    if a["marque"] and plier(it.get("brand_title")).strip() not in ("", plier(a["marque"]).strip()):
+        return False
+    t = mots(it.get("title"))
+    if MOTS_EXCLUS & set(t):
+        return False
+    # Chaque mot-clé doit être dans le titre (à la terminaison près : doudoune / doudounes)
+    return all(any(w.startswith(c[:max(4, len(c) - 2)]) for w in t) for c in map(plier, cles))
+
+
+def chercher_affaires(etat, recherches, t0):
+    """Pour chaque article vendu récemment, cherche le même en ligne à ≤ ACHAT_PART de son prix."""
+    if not AFFAIRES:
+        return []
+    ann = etat["annonces"]
+    urls = dict(recherches)
+    aff = etat.setdefault("affaires", {})
+    for i in [i for i in aff if i not in ann or t0 - (ann[i].get("vendu_vu") or 0) > AFFAIRES_FENETRE_H * 3600]:
+        del aff[i]
+    candidats = []
+    for a in ann.values():
+        if (a["statut"] != "vendu" or not a.get("vendu_vu") or not a.get("prix") or a["recherche"] not in urls
+                or t0 - a["vendu_vu"] > AFFAIRES_FENETRE_H * 3600 or ACHAT_PART * a["prix"] < 5):
+            continue
+        dernier = (aff.get(a["id"]) or {}).get("cherche", 0)
+        if t0 - dernier < AFFAIRES_RELANCE_H * 3600:
+            continue
+        candidats.append((dernier > 0, heures(a.get("publie"), a["vendu_vu"]) or 1e9, a))
+    # D'abord les ventes jamais cherchées, puis les plus rapides
+    candidats.sort(key=lambda c: (c[0], c[1]))
+    deja = {t["id"] for x in aff.values() for t in x.get("trouvees", [])}
+    nouvelles = []
+    for _, _, a in candidats[:MAX_AFFAIRES_PAR_PASSAGE]:
+        cles = mots_cles(a["titre"], a["marque"])
+        if not cles:
+            aff[a["id"]] = {"cherche": t0, "cles": [], "trouvees": []}
+            continue
+        try:
+            items = garder_marque(chercher(url_affaire(urls[a["recherche"]], a, cles)), urls[a["recherche"]])
+        except Exception as e:
+            log(f"[{a['recherche']}] même article : {e}")
+            continue
+        trouvees = []
+        for it in items:
+            i = str(it["id"])
+            if not meme_article(it, a, cles) or (ann.get(i) or {}).get("statut") in ("vendu", "supprime"):
+                continue
+            t = annonce_depuis_api(it, a["recherche"])
+            t["vendu_id"] = a["id"]
+            trouvees.append(t)
+            if i not in deja:
+                deja.add(i)
+                nouvelles.append((t, a))
+        trouvees.sort(key=lambda t: t["prix"])
+        aff[a["id"]] = {"cherche": t0, "cles": cles, "trouvees": trouvees[:6]}
+        log(f"[{a['recherche']}] même article que « {a['titre']} » ({fmt_prix(a['prix'])}) : {len(trouvees)} à ≤ {fmt_prix(int(ACHAT_PART * a['prix']))}")
+        time.sleep(random.uniform(*PAUSE))
+    return nouvelles
+
+
+def notifier_affaires(nouvelles):
+    if not NOTIF_AFFAIRES or not nouvelles:
+        return
+    if len(nouvelles) > 5:
+        lignes = [f"{fmt_prix(t['prix'])} (vendu {fmt_prix(a['prix'])}) · {a['recherche']} · {t['titre']}" for t, a in nouvelles[:8]]
+        notifier(f"{len(nouvelles)} bonnes affaires", "\n".join(lignes), lien=adresse_page(), tags="mag")
+        return
+    for t, a in nouvelles:
+        delai = fmt_h(heures(a.get("publie"), a["vendu_vu"]))
+        details = " · ".join(x for x in (t["marque"], t["taille"], t["etat_article"]) if x)
+        notifier(f"{fmt_prix(t['prix'])} · même article vendu {fmt_prix(a['prix'])} en {delai}",
+                 t["titre"] + (f"\n{details}" if details else "") + f"\nVendu : {a['titre']}",
+                 lien=t["url"], photo=t["photo"], tags="mag")
+
+
 # ---------------------------------------------------------------- passage
 
 def passage():
@@ -635,6 +769,11 @@ def passage():
                      a["titre"] + (f"\n{details}" if details else ""),
                      lien=a["url"], photo=a["photo"], marque=marque)
 
+    # Même article, 2,5 fois moins cher, pour les ventes récentes (la nuit : sur la page seulement)
+    nouvelles = chercher_affaires(etat, recherches, t0)
+    log(f"{len(nouvelles)} nouvelles bonnes affaires")
+    if not est_nuit():
+        notifier_affaires(nouvelles)
     # Ménage
     limite = t0 - CONSERVATION_J * 86400
     for i in [i for i, a in ann.items() if (a.get("publie") or a["vu"]) < limite]:
@@ -669,7 +808,7 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vue img{max-width:100%;max-height:calc(100% - 120px);object-fit:contain;border-radius:6px}.vue p{color:#fff;margin:0;font-size:14px;text-align:center}
 .vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
-.achat{font-weight:700;color:var(--accent)}
+.achat{font-weight:700;color:var(--accent)}.body a.v{margin:0;font-weight:600}
 @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}}"""
 
 
@@ -725,6 +864,28 @@ def ecrire_rapport(etat):
         f"""{''.join(lignes_cl) or f'<tr><td colspan="7">Pas encore assez de ventes (au moins {CLASSEMENT_MIN_VENTES} par recherche sur {CLASSEMENT_J} jours).</td></tr>'}</tbody></table></div>"""
         f"""<p class="sub">Sur les {CLASSEMENT_J} derniers jours. Achat max : {ACHAT_PART * 100:.0f} % du prix médian vendu, avec au moins {ACHAT_MARGE} € de marge. Les vignettes sont les ventes les plus rapides.</p></section>""")
 
+    # Même article, 2,5 fois moins cher
+    par_id = etat["annonces"]
+    affaires = sorted(((t, par_id[v]) for v, x in etat.get("affaires", {}).items() if v in par_id for t in x.get("trouvees", [])),
+                      key=lambda ta: (-ta[0]["vu"], ta[0]["prix"] / ta[1]["prix"]))[:60]
+    cartes_aff = []
+    for t, a in affaires:
+        img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(t["photo"])}" {zoom(t)} '
+               f'onerror="this.replaceWith(\'Photo expirée\')">') if t["photo"] else "Pas de photo"
+        cartes_aff.append(
+            f'<article class="card"><div class="ph">{img}<span class="b d hot">÷ {f"{a['prix'] / t['prix']:.1f}".replace(".", ",")}</span>'
+            f'<span class="b p">{fmt_prix(t["prix"])}</span></div><div class="body"><span class="m">{html.escape(a["recherche"])}</span>'
+            f'<span class="t">{html.escape(t["titre"])}</span><span class="m">{html.escape(" · ".join(x for x in (t["marque"], t["taille"], t["etat_article"]) if x))}'
+            f'{" · ♥ " + str(t["likes"]) if t.get("likes") else ""}</span>'
+            f'<span class="m">Vu il y a {fmt_h(heures(t["vu"], t0))} · vendu : <a class="v" href="{html.escape(a["url"])}" target="_blank" rel="noopener">{fmt_prix(a["prix"])} en ≤ {fmt_h(heures(a.get("publie"), a["vendu_vu"]))}</a></span>'
+            f'<a href="{html.escape(t["url"])}" target="_blank" rel="noopener">Voir l’annonce ↗</a></div></article>')
+    section_aff = (
+        f"""<section><h2>Même article, 2,5× moins cher ({len(cartes_aff)})</h2>"""
+        f"""<div class="grid">{''.join(cartes_aff)}</div>""" if cartes_aff else
+        """<section><h2>Même article, 2,5× moins cher</h2><p class="sub">Rien pour l’instant.</p>""") + (
+        f"""<p class="sub">Pour chaque article vendu depuis moins de {AFFAIRES_FENETRE_H} h : annonces en ligne de la même marque, avec les mêmes mots-clés du titre
+(hors couleur et taille), en très bon état, à {ACHAT_PART * 100:.0f} % ou moins du prix de vente. Recherche relancée toutes les {AFFAIRES_RELANCE_H} h.
+À vérifier avant achat : c’est le même type d’article, pas forcément le même modèle exact.</p></section>""")
     maj = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
     page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Ventes suivies</title>
@@ -732,6 +893,7 @@ def ecrire_rapport(etat):
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ventes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>{CSS}</style></head><body><div class="tirer" id="tirer">↓ Tirer pour actualiser</div><div class="wrap">
 <header><div class="haut"><h1>Ventes suivies</h1><button type="button" id="actualiser">↻ Actualiser</button></div><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
 Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vente a été repérée : la vente réelle a eu lieu avant.</p></header>
+{section_aff}
 {section_cl}
 <section><h2>Par recherche</h2><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
