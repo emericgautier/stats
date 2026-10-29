@@ -35,6 +35,8 @@ FICHIER_ETAT = os.path.join(ICI, "etat.json")
 FICHIER_ETAT_ANCIEN = os.path.join(ICI, "etat_ancien.json")  # mémoire d'avant le retrait de recherches, relue une seule fois
 RESTAURER = ["Ba&sh sweat", "Sézane sweat", "Sézane trench"]  # recherches retirées dont on récupère les ventes passées
 FICHIER_RAPPORT = os.path.join(ICI, "docs", "index.html")
+DOSSIER_EXPORT = os.path.join(ICI, "docs", "ventes")  # ventes en texte brut, une page par recherche, pour les analyses
+EXPORT_LIGNES = 120         # ventes par fichier texte (pages courtes, lisibles d'un coup)
 
 BASE = ""  # déduit de la première recherche
 NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "").strip()
@@ -646,6 +648,7 @@ def passage():
     etat["dernier_passage"] = t0
     ecrire_etat(etat)
     ecrire_rapport(etat)
+    ecrire_export(etat)
 
 
 # ---------------------------------------------------------------- rapport
@@ -764,6 +767,40 @@ document.addEventListener('visibilitychange',function(){{if(!document.hidden&&Da
     os.makedirs(os.path.dirname(FICHIER_RAPPORT), exist_ok=True)
     with open(FICHIER_RAPPORT, "w", encoding="utf-8") as f:
         f.write(page)
+
+
+def slug(t):
+    t = unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", t).strip("-") or "recherche"
+
+
+def ecrire_export(etat):
+    """Toutes les ventes gardées, en texte brut : un sommaire, puis des pages de 120 ventes par recherche."""
+    vendus = sorted([a for a in etat["annonces"].values() if a["statut"] == "vendu"], key=lambda a: a["vendu_vu"], reverse=True)
+    par = {}
+    for a in vendus:
+        par.setdefault(a["recherche"], []).append(a)
+    os.makedirs(DOSSIER_EXPORT, exist_ok=True)
+    for f in os.listdir(DOSSIER_EXPORT):
+        os.remove(os.path.join(DOSSIER_EXPORT, f))
+    paris = ZoneInfo("Europe/Paris")
+    sommaire = ["Ventes par recherche (délai | prix | taille | titre | vendue le | likes | annonce | photo)", ""]
+    for nom, lst in sorted(par.items()):
+        pages = [lst[k:k + EXPORT_LIGNES] for k in range(0, len(lst), EXPORT_LIGNES)]
+        fichiers = []
+        for n, morceau in enumerate(pages, 1):
+            fichier = f"{slug(nom)}-{n}.txt"
+            lignes = [f"{nom} · page {n}/{len(pages)} · {len(lst)} ventes"]
+            for a in morceau:
+                quand = datetime.fromtimestamp(a["vendu_vu"], paris).strftime("%d/%m %H:%M")
+                lignes.append(" | ".join([fmt_h(heures(a.get("publie"), a["vendu_vu"])), fmt_prix(a["prix"]), a["taille"] or "?",
+                                          " ".join(a["titre"].split()), quand, str(a.get("likes") or 0), a["url"].split("?")[0], a["photo"] or "-"]))
+            with open(os.path.join(DOSSIER_EXPORT, fichier), "w", encoding="utf-8") as f:
+                f.write("\n".join(lignes) + "\n")
+            fichiers.append(fichier)
+        sommaire.append(f"{nom} ({len(lst)}) : {' '.join(fichiers)}")
+    with open(os.path.join(DOSSIER_EXPORT, "index.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(sommaire) + "\n")
 
 
 # ---------------------------------------------------------------- test
