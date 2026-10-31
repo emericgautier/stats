@@ -10,3 +10,4 @@ Ba&sh | https://www.vinted.fr/catalog?catalog[]=4&brand_ids[]=3697&status_ids[]=
 Sézane | https://www.vinted.fr/catalog?catalog[]=4&brand_ids[]=38437&status_ids[]=2&price_from=60&currency=EUR&order=newest_first
 COS | https://www.vinted.fr/catalog?catalog[]=4&brand_ids[]=2029&status_ids[]=2&price_from=60&currency=EUR&order=newest_first
 Barbour matelassée | https://www.vinted.fr/catalog?catalog[]=2596&brand_ids[]=46805&status_ids[]=2&price_from=60&currency=EUR&order=newest_first
+Bellerose | https://www.vinted.fr/catalog?brand_ids[]=2007&status_ids[]=2&price_from=70&currency=EUR&order=newest_first&marque=Bellerose
