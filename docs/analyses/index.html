@@ -1,0 +1,52 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Analyses</title>
+<link rel="manifest" href="../manifest.json"><link rel="apple-touch-icon" href="../icone-180.png"><meta name="theme-color" content="#2f5d50">
+<style>
+:root{--bg:#f6f6f3;--surface:#fff;--ink:#1d2120;--muted:#646b68;--line:#dfe1dc;--accent:#2f5d50;--accent-soft:#e3ece8;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#141716;--surface:#1d2120;--ink:#ecefec;--muted:#9aa29e;--line:#2e3431;--accent:#8cc2ad;--accent-soft:#22312b;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,sans-serif;padding:max(28px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}h1{font-size:28px;margin:0}
+header a{font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:8px 14px;text-decoration:none}
+.puces{display:flex;gap:6px;flex-wrap:wrap}.puces button{font:600 14px system-ui;color:var(--accent);background:var(--accent-soft);border:0;border-radius:99px;padding:7px 12px;cursor:pointer}
+.puces button[aria-pressed=true]{background:var(--accent);color:var(--bg)}
+.liste{display:flex;flex-direction:column;gap:8px}
+.a{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit}
+.a .d{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;min-width:44px}.a .t{font-weight:600;flex:1}.a .m{color:var(--muted);font-size:13px}.a .f{color:var(--accent);font-weight:700}
+.sub{color:var(--muted);font-size:13px;margin:0}
+</style></head><body><div class="wrap">
+<header><h1>Analyses</h1><a href="../">← Ventes</a></header>
+<div class="puces" id="puces"></div>
+<div class="liste" id="liste"></div>
+<p class="sub">Une analyse par page, avec photos et liens vers les annonces. Les plus récentes en haut.</p>
+</div>
+<script>
+// Pour ajouter une analyse : déposer le fichier dans ce dossier et ajouter une ligne ici.
+var A = [
+  ["manteaux-femme-a-acheter-2026-11-01.html", "Manteaux femme à acheter", "Plusieurs marques", "2026-11-01"],
+  ["american-vintage-a-acheter-2026-10-31.html", "American Vintage à acheter", "American Vintage", "2026-10-31"],
+  ["bellerose-a-acheter-2026-10-31.html", "Bellerose à acheter", "Bellerose", "2026-10-31"],
+  ["cos-a-acheter-2026-10-31.html", "COS à acheter", "COS", "2026-10-31"],
+  ["patagonia-a-acheter-2026-10-31.html", "Patagonia à acheter", "Patagonia", "2026-10-31"],
+  ["modeles-a-marger-2026-10-29.html", "Modèles à marger", "Plusieurs marques", "2026-10-29"],
+  ["sezane-modeles-tbe-2026-10-27.html", "Modèles Sézane qui reviennent", "Sézane", "2026-10-27"],
+  ["paragoose-2026-10-27.html", "Paragoose sur Vinted", "Paragoose", "2026-10-27"],
+  ["filtres-kops-suivi.html", "Filtres Kops du suivi", "Plusieurs marques", "2026-10-26"],
+  ["marques-femme-50.html", "Marques femme à 50 € et plus", "Plusieurs marques", "2026-10-25"]
+];
+A.sort(function(x,y){return y[3].localeCompare(x[3])});
+var choix = "", puces = document.getElementById("puces"), liste = document.getElementById("liste");
+function esc(t){var d=document.createElement("div");d.textContent=t;return d.innerHTML}
+function date(d){var p=d.split("-");return p[2]+"/"+p[1]}
+function afficher(){
+  liste.innerHTML = A.filter(function(a){return !choix || a[2]===choix}).map(function(a){
+    return '<a class="a" href="'+esc(a[0])+'"><span class="d">'+date(a[3])+'</span><span class="t">'+esc(a[1])+'<br><span class="m">'+esc(a[2])+'</span></span><span class="f">›</span></a>'}).join("");
+  [].forEach.call(puces.children,function(b){b.setAttribute("aria-pressed",b.dataset.m===choix)});
+}
+var marques = [];
+A.forEach(function(a){if(marques.indexOf(a[2])<0)marques.push(a[2])});
+marques.sort(function(x,y){return x==="Plusieurs marques"?1:y==="Plusieurs marques"?-1:x.localeCompare(y,"fr")});
+[["", "Toutes"]].concat(marques.map(function(m){return [m,m]})).forEach(function(m){
+  var b=document.createElement("button");b.type="button";b.dataset.m=m[0];b.textContent=m[1];b.onclick=function(){choix=m[0];afficher()};puces.appendChild(b)});
+afficher();
+</script></body></html>

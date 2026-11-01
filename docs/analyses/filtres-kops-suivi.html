@@ -1,0 +1,154 @@
+<title>Filtres Kops du suivi</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Mise en page : une colonne de lecture, une fiche par filtre Kops avec ses ventes en vignettes */
+:root{--bg:#f6f7f4;--card:#ffffff;--fg:#1f2a26;--muted:#5d6b65;--line:#dde3df;--accent:#2f5d50;--good:#2d7a3e;--warn:#a2611a;--bad:#a33a3a;
+--display:"Fraunces",Georgia,serif;--body:"Work Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a18;--card:#1c2421;--fg:#e6ece9;--muted:#9aa8a2;--line:#2c3733;--accent:#7cc0a8;--good:#6fc483;--warn:#e0a35a;--bad:#e07c7c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141a18;--card:#1c2421;--fg:#e6ece9;--muted:#9aa8a2;--line:#2c3733;--accent:#7cc0a8;--good:#6fc483;--warn:#e0a35a;--bad:#e07c7c;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:980px;margin:0 auto;padding-block:28px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
+h1,h2,h3{font-family:var(--display);font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem}h2{font-size:1.4rem}h3{font-size:1.1rem}
+p{margin:0;max-width:68ch}.sub{color:var(--muted);font-size:.9rem}
+section{display:grid;gap:14px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.04em}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:.75rem;font-weight:600;border:1px solid currentColor}
+.g{color:var(--good)}.w{color:var(--warn)}.b{color:var(--bad)}
+.filtres{display:grid;gap:16px}
+.f{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px;min-width:0}
+.f header{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline;justify-content:space-between}
+.max{font-family:var(--mono);font-size:1.05rem;color:var(--accent);white-space:nowrap}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:0;font-size:.9rem}
+dt{color:var(--muted)}dd{margin:0;min-width:0}
+.vig{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.vig a{flex:0 0 92px;display:grid;gap:3px;text-decoration:none;color:var(--muted);font-size:.72rem;font-family:var(--mono)}
+.vig img{width:92px;height:128px;object-fit:cover;border-radius:6px;background:var(--line)}
+.vig span.x{display:grid;place-items:center;width:92px;height:128px;border-radius:6px;background:var(--line);font-size:.7rem;text-align:center}
+ul{margin:0;padding-left:1.2em;display:grid;gap:4px;max-width:68ch}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+<div class="wrap">
+<header style="display:grid;gap:8px">
+<h1>Filtres Kops tirés du suivi des ventes</h1>
+<p class="sub">Données de la page « Ventes suivies » du 26/10/2026 à 19 h 23 : 485 ventes sur 7 jours (classement par recherche) et le détail article par article des 120 ventes les plus récentes. Achat max = min(40 % du médian vendu, médian − 30 €). Très bon état seulement, sans mot-clé obligatoire.</p>
+</header>
+
+<section>
+<h2>Ce qui se vend vraiment</h2>
+<p>Le « taux 24 h » est la part des annonces suivies qui partent en moins de 24 h. C'est le bon indicateur pour Kops : un filtre sur une marque à 3 % te noie sous des annonces qui ne partiront pas.</p>
+<div class="tbl"><table>
+<thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>Taux 24 h</th><th>Médian</th><th>Achat max</th><th>Verdict Kops</th></tr></thead>
+<tbody>
+<tr><td>Patagonia</td><td>754</td><td>57</td><td>20 %</td><td>65 €</td><td>≤ 26 €</td><td><span class="pill g">oui</span></td></tr>
+<tr><td>American Vintage</td><td>750</td><td>66</td><td>19 %</td><td>65 €</td><td>≤ 26 €</td><td><span class="pill g">oui</span></td></tr>
+<tr><td>Sézane</td><td>1 531</td><td>109</td><td>16 %</td><td>70 €</td><td>≤ 28 €</td><td><span class="pill g">oui, mailles</span></td></tr>
+<tr><td>COS</td><td>223</td><td>23</td><td>77 %*</td><td>65 €</td><td>≤ 26 €</td><td><span class="pill g">oui, mailles</span></td></tr>
+<tr><td>Uniqlo coupe-vent</td><td>117</td><td>9</td><td>9 %</td><td>50 €</td><td>≤ 20 €</td><td><span class="pill w">à tester</span></td></tr>
+<tr><td>Soeur</td><td>210</td><td>11</td><td>8 %</td><td>60 €</td><td>≤ 24 €</td><td><span class="pill w">à tester</span></td></tr>
+<tr><td>Balzac Paris</td><td>145</td><td>7</td><td>6 %</td><td>85 €</td><td>≤ 34 €</td><td><span class="pill w">manteaux seulement</span></td></tr>
+<tr><td>Uniqlo doudoune</td><td>462</td><td>16</td><td>5 %</td><td>67,50 €</td><td>≤ 27 €</td><td><span class="pill w">garder, saison</span></td></tr>
+<tr><td>Jott doudoune</td><td>631</td><td>18</td><td>5 %</td><td>62,50 €</td><td>≤ 25 €</td><td><span class="pill w">garder, saison</span></td></tr>
+<tr><td>Arket veste</td><td>959</td><td>34</td><td>5 %</td><td>70 €</td><td>≤ 28 €</td><td><span class="pill b">non</span></td></tr>
+<tr><td>Ba&amp;sh</td><td>871</td><td>15</td><td>5 %</td><td>60 €</td><td>≤ 24 €</td><td><span class="pill b">non</span></td></tr>
+<tr><td>Sandro</td><td>715</td><td>14</td><td>4 %</td><td>70 €</td><td>≤ 28 €</td><td><span class="pill b">non</span></td></tr>
+<tr><td>Barbour matelassée</td><td>381</td><td>11</td><td>4 %</td><td>70 €</td><td>≤ 28 €</td><td><span class="pill b">non (lent)</span></td></tr>
+<tr><td>Pyrenex doudoune</td><td>250</td><td>6</td><td>4 %</td><td>94 €</td><td>≤ 38 €</td><td><span class="pill w">rare mais marge</span></td></tr>
+<tr><td>Arket manteau</td><td>1 184</td><td>27</td><td>3 %</td><td>70 €</td><td>≤ 28 €</td><td><span class="pill w">laine seulement</span></td></tr>
+<tr><td>Uniqlo Harrington</td><td>155</td><td>3</td><td>2 %</td><td>55 €</td><td>≤ 22 €</td><td><span class="pill b">non</span></td></tr>
+</tbody></table></div>
+<p class="sub">* COS est suivi depuis le 25/10 : peu de ses annonces ont déjà 24 h, donc son taux est gonflé. Les 36 ventes « Sézane sweat » viennent de la recherche retirée le 25/10 (seules les ventes ont été gardées, d'où ses 100 %) : elles confirment les mailles Sézane.</p>
+</section>
+
+<section>
+<h2>Les filtres à créer dans Kops</h2>
+<p>Pour tous : état très bon, exclusions habituelles (enfant, défaut, tache, trou, imitation, inspiré, style, type). Les médians ci-dessous sont calculés sur le type d'article précis, d'après les 120 dernières ventes.</p>
+<div class="filtres">
+
+<article class="f"><header><h3>1. Sézane, mailles femme</h3><span class="max">achat ≤ 30 €</span></header>
+<dl><dt>Catégorie</dt><dd>Femme › Pulls &amp; sweats + Cardigans / gilets</dd><dt>Tailles</dt><dd>XS à L (surtout S et M)</dd><dt>Ventes</dt><dd>17 mailles sur 29 ventes Sézane récentes, médian 75 €, souvent en moins d'une heure. Modèles qui reviennent : cardigans Emile, Barbara, gilets col V.</dd></dl>
+<div class="vig">
+<a href="https://www.vinted.fr/items/10546179223" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Cardigan Emile Sézane" src="https://images1.vinted.net/t/03_00735_8XGAHCUfYSz3hNj7ocpLHcAC/310x430/b5a6316d.webp?s=132fa71f92b29899d67bcae112e95fb51b01923b">75 € · 49 min</a>
+<a href="https://www.vinted.fr/items/10545298579" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Cardigan Barbara Sézane" src="https://images1.vinted.net/t/06_00919_hWeSiG24D6yWnubyrftsy5pR/310x430/85cc39a3.webp?s=4d0d4de4ec15f623df62a596448c04d5509b6a48">60 € · 17 min</a>
+<a href="https://www.vinted.fr/items/10544434177" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Pull Sézane crème" src="https://images1.vinted.net/t/06_00acb_tGhHyWVuTqetWUz4ZizfDh7e/310x430/ab66ec7f.webp?s=a45fc9291066955b6ddc4d96ace0e464b7f722b9">75 € · 3 h</a>
+</div></article>
+
+<article class="f"><header><h3>2. American Vintage, mailles</h3><span class="max">achat ≤ 26 €</span></header>
+<dl><dt>Catégorie</dt><dd>Femme et homme › Pulls + Cardigans / gilets</dd><dt>Tailles</dt><dd>XS à M (taille unique aussi)</dd><dt>Ventes</dt><dd>9 mailles sur 20 ventes récentes, médian 65 €, plusieurs en 17 min. Gilets Hoktown et pulls laine en tête.</dd></dl>
+<div class="vig">
+<a href="https://www.vinted.fr/items/10545489173" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Gilet Hoktown American Vintage" src="https://images1.vinted.net/t/06_01aec_WWtWJZPDV3pP7n85YveGAYnp/310x430/5511c2a7.webp?s=41f983758e9d4f8edf62736ea5a7b88d734c265e">65 € · 16 min</a>
+<a href="https://www.vinted.fr/items/10546982043" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Pull laine American Vintage" src="https://images1.vinted.net/t/02_00305_d31P6KwAp84s8koMGRrKFYHv/310x430/0fabf12c.webp?s=ea23ce7c2a7405c190e267dbe29695f309b57d9d">65 € · 17 min</a>
+</div></article>
+
+<article class="f"><header><h3>3. American Vintage, polaires et sans manches</h3><span class="max">achat ≤ 28 €</span></header>
+<dl><dt>Catégorie</dt><dd>Vestes polaires + Gilets sans manches / bodywarmers</dd><dt>Tailles</dt><dd>S à L</dd><dt>Ventes</dt><dd>3 ventes récentes (65 à 93 €), dont une en 17 min. Petit échantillon : à confirmer.</dd></dl>
+<div class="vig">
+<a href="https://www.vinted.fr/items/10547132390" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Gilet polaire sans manches" src="https://images1.vinted.net/t/05_00a53_heRwztTXsLo8zduSZgJjeS5Z/310x430/312b1dde.webp?s=2511c9b5002fcf4c32d77baa1075b032d760b39d">70 € · 17 min</a>
+<a href="https://www.vinted.fr/items/10542964836" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Veste polaire zippée" src="https://images1.vinted.net/t/04_008bd_1dCKH6zg3GfHAxgQqTQxf14o/310x430/e3c83b8f.webp?s=46be32a0f2e848597689780fe71623be5b671014">93 € · 2 h</a>
+</div></article>
+
+<article class="f"><header><h3>4. Patagonia, doudounes et parkas</h3><span class="max">achat ≤ 36 €</span></header>
+<dl><dt>Catégorie</dt><dd>Femme et homme › Doudounes + Parkas</dd><dt>Tailles</dt><dd>S à XL</dd><dt>Ventes</dt><dd>6 ventes récentes, médian 90 € (70 à 130 €). Down Sweater, Jackson Glacier. C'est le meilleur filtre en marge, et on est en pleine saison.</dd></dl>
+<div class="vig">
+<a href="https://www.vinted.fr/items/10546739624" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Parka Jackson Glacier" src="https://images1.vinted.net/t/05_02408_sqZsUvqcLYU1NhYETTj1Tqv4/310x430/1f481c48.webp?s=ad4f550a9b489e2322f488d5bd52eff0ba809ee3">80 € · 33 min</a>
+<a href="https://www.vinted.fr/items/10542612937" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Down Sweater Patagonia" src="https://images1.vinted.net/t/06_01ce0_KpqH9BMxezaiSwXe2R325PLu/310x430/11180bf4.webp?s=cc5d09f235677b7eca00842569419cfdda30cbd5">100 € · 2 h</a>
+<a href="https://www.vinted.fr/items/10543319503" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Manteau duvet Patagonia" src="https://images1.vinted.net/t/02_00a5b_3eTreyrk9sm8TZ8Be1H4ALXb/310x430/c6fb68eb.webp?s=58e14621c04644b27283923c17230fcd476094f4">81 € · 16 min</a>
+</div></article>
+
+<article class="f"><header><h3>5. Patagonia, polaires et imperméables</h3><span class="max">polaire ≤ 24 € · imper ≤ 36 €</span></header>
+<dl><dt>Catégorie</dt><dd>Vestes polaires + Gilets sans manches (Retro Pile, Synchilla) ; Imperméables (Torrentshell)</dd><dt>Tailles</dt><dd>S à XL</dd><dt>Ventes</dt><dd>Polaires autour de 60 €, imperméables autour de 90 € (2 ventes en 17 et 33 min). Deux filtres séparés dans Kops pour garder deux prix max.</dd></dl>
+<div class="vig">
+<a href="https://www.vinted.fr/items/10542484908" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Gilet Retro Pile" src="https://images1.vinted.net/t/02_01269_FKaPeopnb4MM1BEH3M9SAmgn/310x430/dbb2104f.webp?s=eda2941c431cb2d33ee50f8ee44a8e516761fbfa">60 € · 3 h</a>
+<a href="https://www.vinted.fr/items/10545219674" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Imperméable Patagonia" src="https://images1.vinted.net/t/02_0258c_Kv91gCns1RwQWm4nq8jUBzhv/310x430/539e36d9.webp?s=c85b125c1f912cc8498040937be5c9c583de4139">90 € · 17 min</a>
+</div></article>
+
+<article class="f"><header><h3>6. COS, mailles</h3><span class="max">achat ≤ 36 € (≤ 50 € si cachemire)</span></header>
+<dl><dt>Catégorie</dt><dd>Femme et homme › Pulls + Cardigans + Sweats à capuche</dd><dt>Tailles</dt><dd>XS à L</dd><dt>Ventes</dt><dd>7 ventes récentes, 5 en cachemire (65 à 200 €, médian 140 €). Mailles COS toutes confondues : médian 90 €. Vérifier l'étiquette composition avant de monter à 50 €.</dd></dl>
+<div class="vig">
+<a href="https://www.vinted.fr/items/10546349147" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Col roulé cachemire COS" src="https://images1.vinted.net/t/05_00ce7_jPD3dS5gHzL6HvGThGeMC9rp/310x430/748896e2.webp?s=c67a88d663f253b8d4bc96637a7e0f4958b2d9f3">200 € · 33 min</a>
+<a href="https://www.vinted.fr/items/10542920277" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Hoodie cachemire COS" src="https://images1.vinted.net/t/01_02548_dM4fU4xYxPb7yFhanqGQESLR/310x430/2987cae7.webp?s=6960b8cbfd7e17453e688d0793986bdb1b4b8d12">140 € · 16 min</a>
+<a href="https://www.vinted.fr/items/10540876484" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Cardigan cachemire COS" src="https://images1.vinted.net/t/01_024b6_b1NQVRonuagQCMfCVmdL92Nn/310x430/1ab95b5b.webp?s=bdcae946fefd379e89898fe9dd970840e6b3ce77">65 € · 2 h</a>
+<a href="https://www.vinted.fr/items/10539467454" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Pull cachemire COS" src="https://images1.vinted.net/t/06_0219d_UKYKn8KnKYWck4Xf6PBrg5Jo/310x430/11e1322d.webp?s=cd046eaa5313f2007faa9c021eba6069e2982426">90 € · 3 h</a>
+</div></article>
+
+<article class="f"><header><h3>7. Arket, manteaux en laine femme</h3><span class="max">achat ≤ 40 €</span></header>
+<dl><dt>Catégorie</dt><dd>Femme › Manteaux (laine, mi-longs, trenchs)</dd><dt>Tailles</dt><dd>S, M, 36 à 38</dd><dt>Ventes</dt><dd>Médian 100 € sur 11 manteaux récents, mais seulement 3 % des annonces partent en 24 h. Le filtre marque Arket de Kops évite le bruit de la recherche par mot-clé (bottes, NN07, &amp; Other Stories). Ne prendre que la laine.</dd></dl>
+<div class="vig">
+<a href="https://www.vinted.fr/items/10543688079" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Manteau laine Arket" src="https://images1.vinted.net/t/02_020cb_FTg3Rb8niKYrVKTrtfsaCuQA/310x430/93ec2ef5.webp?s=c9a71ff4b1e0fc1dee3de9ad60129c6fbfbc2b23">130 € · 3 h</a>
+<a href="https://www.vinted.fr/items/10540804309" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Manteau mi-long" src="https://images1.vinted.net/t/05_0013c_RR3arFargJWDkJZRSoSpVVWJ/310x430/9702b9ec.webp?s=a2532e89c7bafad973aa304da341bbb559aa59b0">70 € · 2 h</a>
+</div></article>
+
+<article class="f"><header><h3>8. Doudounes Jott et Uniqlo (saison)</h3><span class="max">Jott ≤ 25 € · Uniqlo ≤ 28 €</span></header>
+<dl><dt>Catégorie</dt><dd>Doudounes femme et homme</dd><dt>Tailles</dt><dd>S à XL (Jott se vend aussi en XXL)</dd><dt>Ventes</dt><dd>Jott : médian 60 €, 5 % en 24 h. Uniqlo : médian 70 €, 5 % en 24 h ; seules les annonces à 60 € et plus sont suivies, donc vise les longues et les modèles Seamless, pas les Ultra Light basiques. Bons en volume jusqu'en janvier.</dd></dl>
+<div class="vig">
+<a href="https://www.vinted.fr/items/10545205379" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Doudoune Jott à capuche" src="https://images1.vinted.net/t/04_01f53_HoXuxSwuf3X26T2X8bPCTMY9/310x430/b8df305b.webp?s=f0e30a37f4f19816de2ce5d175c470ee1a4629b9">110 € · 33 min</a>
+<a href="https://www.vinted.fr/items/10542663451" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Doudoune Uniqlo" src="https://images1.vinted.net/t/06_00b17_pZPWcVw5JSPjZdnvwdJoEowg/310x430/26e4a8a1.webp?s=cb2750b1a957a5eaf7d7d4726671acbd74add484">70 € · 17 min</a>
+<a href="https://www.vinted.fr/items/10543771245" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt="Doudoune Uniqlo imperméable" src="https://images1.vinted.net/t/05_00e82_oiHcwmxFU6hvQLtpNhhUvLCW/310x430/91a72cc2.webp?s=913af67253befd2d2e909ca93bbe8ef0a000bcc2">65 € · 16 min</a>
+</div></article>
+</div>
+</section>
+
+<section>
+<h2>À laisser hors de Kops</h2>
+<ul>
+<li><b>Sandro, Ba&amp;sh, Uniqlo Harrington, Arket veste</b> : 2 à 5 % en 24 h, beaucoup d'annonces pour peu de ventes. Le suivi suffit pour les garder à l'œil.</li>
+<li><b>Barbour matelassée</b> : délai médian 2 h et 4 % en 24 h sur la semaine. Garder ton filtre actuel ≤ 35–40 € plutôt que l'élargir.</li>
+<li><b>Patagonia enfant</b> (combinaisons de ski, overalls) se vend vite à 65–120 €, mais c'est hors de tes règles (enfant exclu).</li>
+</ul>
+</section>
+
+<section>
+<h2>Limites</h2>
+<ul>
+<li>Le détail par article ne couvre que les 120 ventes les plus récentes (environ 36 h) ; les chiffres par recherche couvrent les 485 ventes de la semaine.</li>
+<li>Chaque recherche du suivi a un prix plancher (60 € pour la plupart). Les médians ne valent donc que pour des articles du même niveau : un pull Sézane qui se revendrait 35 € n'est pas dans ces chiffres.</li>
+<li>Le délai affiché est le temps jusqu'au moment où la vente a été repérée ; la vente réelle a eu lieu avant.</li>
+</ul>
+</section>
+</div>
+<script>document.querySelectorAll('.vig img').forEach(function(i){function r(){var s=document.createElement('span');s.className='x';s.textContent='Photo sur Vinted ↗';i.replaceWith(s)}if(i.complete&&!i.naturalWidth)r();else i.addEventListener('error',r)})</script>
