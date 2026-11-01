@@ -742,17 +742,18 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <section><details class="repli"><summary><h2>Par recherche</h2></summary><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></details></section>
-<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f-m" aria-label="Marque" hidden></select><select id="f-r" aria-label="Recherche" hidden></select></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
+<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f" aria-label="Marque ou recherche" hidden></select></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
 <div class="vue" id="vue" hidden><button type="button" aria-label="Fermer">×</button><img alt="" referrerpolicy="no-referrer"><p></p><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div>
-<script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),choix={{r:'',m:''}};
-function cle(e,a){{return a==='m'?(e.dataset.m||'').toLowerCase():e.dataset.r}}
-function appliquer(){{cartes.forEach(function(e){{e.hidden=(!!choix.r&&cle(e,'r')!==choix.r)||(!!choix.m&&cle(e,'m')!==choix.m)}})}}
-function menu(id,a,tout){{var c=document.getElementById(id),n={{}},nom={{}};
-cartes.forEach(function(e){{var k=cle(e,a);if(!k)return;n[k]=(n[k]||0)+1;nom[k]=nom[k]||(a==='m'?e.dataset.m:k)}});
-var k=Object.keys(n).sort(function(x,y){{return nom[x].localeCompare(nom[y],'fr')}});if(k.length<2)return;
-[''].concat(k).forEach(function(r){{var o=document.createElement('option');o.value=r;o.textContent=(r?nom[r]:tout)+' ('+(r?n[r]:cartes.length)+')';c.appendChild(o)}});
-c.hidden=false;c.onchange=function(){{choix[a]=c.value;appliquer()}}}}
-menu('f-m','m','Toutes les marques');menu('f-r','r','Toutes les recherches')}})();
+<script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),c=document.getElementById('f'),choix=[],par={{}};
+// Un seul menu : les marques, et sous une marque suivie par plusieurs recherches, chacune de ses recherches
+cartes.forEach(function(e){{var m=(e.dataset.m||'').trim(),k=m.toLowerCase();if(!k)return;var b=par[k]||(par[k]={{nom:m,n:0,r:{{}}}});b.n++;b.r[e.dataset.r]=(b.r[e.dataset.r]||0)+1}});
+function ajouter(texte,f){{var o=document.createElement('option');o.value=choix.length;o.textContent=texte;choix.push(f);c.appendChild(o)}}
+ajouter('Toutes les ventes ('+cartes.length+')',null);
+var ks=Object.keys(par).sort(function(x,y){{return par[x].nom.localeCompare(par[y].nom,'fr')}});
+ks.forEach(function(k){{var b=par[k];ajouter(b.nom+' ('+b.n+')',{{m:k}});var rs=Object.keys(b.r).sort(function(x,y){{return x.localeCompare(y,'fr')}});
+if(rs.length>1)rs.forEach(function(r){{ajouter('\u00a0\u00a0\u00a0↳ '+r+' ('+b.r[r]+')',{{m:k,r:r}})}})}});
+if(ks.length>1||choix.length>2){{c.hidden=false;c.onchange=function(){{var f=choix[+c.value];
+cartes.forEach(function(e){{e.hidden=!!f&&((e.dataset.m||'').trim().toLowerCase()!==f.m||(!!f.r&&e.dataset.r!==f.r))}})}}}}}})();
 (function(){{var v=document.getElementById('vue'),im=v.querySelector('img'),t=v.querySelector('p'),l=v.querySelector('a');
 function fermer(){{v.hidden=true;im.removeAttribute('src')}}
 document.addEventListener('click',function(e){{var x=e.target.closest('img[data-u]');if(!x)return;e.preventDefault();
