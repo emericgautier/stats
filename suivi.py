@@ -53,6 +53,11 @@ CLASSEMENT_J = 7           # période du classement de la semaine
 CLASSEMENT_MIN_VENTES = 3  # ventes minimum pour qu'une recherche soit classée
 ACHAT_PART = 0.40          # prix d'achat max : 40 % du prix médian vendu…
 ACHAT_MARGE = 30           # … en gardant au moins 30 € de marge
+MODELE_MIN = 3              # annonces minimum (vendues ou en vente) pour qu'un mot du titre devienne un modèle
+NOUVEAU_H = 72              # badge « Nouveau » : modèle apparu depuis moins de X heures…
+NOUVEAU_LIKES = 5           # … qui a déjà une vente ou une annonce avec au moins X likes
+CHAUFFE_N = 10              # annonces en vente affichées dans « Ça chauffe »
+CHAUFFE_MIN_LIKES = 3       # likes minimum pour y entrer
 COPIE_MARQUE = False        # True : copie de chaque vente sur le sujet de sa marque (sujet-marque) en plus du sujet principal
 RESUME_JOUR, RESUME_HEURE = 0, 8  # résumé de la semaine le lundi (0) à partir de 8 h
 
@@ -528,6 +533,154 @@ def resume_semaine(etat, t0):
     etat["resume_semaine"] = semaine
 
 
+# ---------------------------------------------------------------- modèles
+
+# Mots ignorés pour repérer les modèles dans les titres (sans accents, au singulier)
+MOTS_VIDES = set("""
+femme homme enfant fille garcon mixte unisexe adulte ado taille size tres bon bonne etat neuf neuve excellent parfait impeccable
+comme jamais porte peu etiquette vend vends vendu modele model marque original authentique collection saison
+avec sans pour dans les des une sur par aux est tout toute the and with for und mit
+hiver ete automne printemps chaud chaude leger legere fine long longue court courte mid oversize ample cintre cintree droit droite
+capuche zip zippe zippee col rond manche longues courtes poche bouton doublure double doublee fourrure fourre fourree
+duvet plume moumoute amovible reversible matelasse matelassee
+noir noire blanc blanche bleu marine beige gris grise rouge vert verte kaki rose camel marron ecru creme jaune orange violet
+bordeaux taupe chocolat anthracite black white navy blue grey gray green red brown multicolore fonce clair aubergine moutarde
+dore argent brillant mat chine raye fleuri imprime uni
+xxs xxl xxxl petit grand grande large slim regular oversized vintage neuwertig paket
+maat talla gro women woman men damen herren lady ladie sleeveless smanicato senza manica mangas hiver winter
+pink rosa burgundy grau hellgrau grijs cream dark light fluffy sand lavande fushia fuchsia vieux meliert heather iguane
+""".split())
+MATIERES = {"laine", "cachemire", "coton", "lin", "soie", "cuir", "daim", "velours", "mohair", "alpaga", "merinos", "jean", "denim", "polyester", "sherpa", "teddy"}
+TYPES = {
+    "doudoune": "Doudoune", "veste": "Veste", "manteau": "Manteau", "parka": "Parka", "blouson": "Blouson", "pull": "Pull",
+    "gilet": "Gilet", "cardigan": "Cardigan", "sweat": "Sweat", "sweatshirt": "Sweat", "hoodie": "Sweat", "polaire": "Polaire",
+    "fleece": "Polaire", "chemise": "Chemise", "blouse": "Blouse", "robe": "Robe", "jupe": "Jupe", "pantalon": "Pantalon",
+    "short": "Short", "trench": "Trench", "blazer": "Blazer", "top": "Top", "tshirt": "T-shirt", "debardeur": "Débardeur",
+    "combinaison": "Combinaison", "botte": "Bottes", "bottine": "Bottines", "sac": "Sac", "basket": "Baskets", "chaussure": "Chaussures",
+    "impermeable": "Imperméable", "ciré": "Ciré", "cire": "Ciré", "coupe": "Coupe-vent", "jacket": "Veste", "coat": "Manteau",
+    "doudounette": "Doudoune", "vest": "Gilet", "weste": "Gilet", "bodywarmer": "Gilet", "chaleco": "Gilet",
+    "jacke": "Veste", "jas": "Veste", "jasje": "Veste", "fleecejacke": "Polaire", "fleecejas": "Polaire", "mantel": "Manteau",
+    "sweater": "Pull", "pullover": "Pull", "trui": "Pull", "strickjacke": "Cardigan", "jogger": "Jogging", "daunenjacke": "Doudoune", "bomber": "Blouson", "kimono": "Kimono", "chemisier": "Chemisier", "jogging": "Jogging",
+}
+
+
+def _sans_accent(t):
+    return unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode().lower()
+
+
+def mots_titre(titre):
+    """Mots utiles d'un titre : (clé sans accent au singulier, mot d'origine)."""
+    out = []
+    for w in re.findall(r"[^\W\d_]+", titre or ""):
+        k = _sans_accent(w)
+        if len(k) > 4 and k.endswith("s"):
+            k = k[:-1]
+        if len(k) >= 3:
+            out.append((k, w))
+    return out
+
+
+def cle_marque(a):
+    return (a.get("marque") or "").strip() or a["recherche"]
+
+
+def modeles(etat, t0):
+    """Regroupe toutes les annonces gardées par marque puis par modèle (mot qui revient dans les titres).
+    Renvoie (groupes, groupe de chaque annonce)."""
+    par = {}
+    for a in etat["annonces"].values():
+        if a["statut"] != "supprime":
+            par.setdefault(cle_marque(a), []).append(a)
+    groupes, de = {}, {}
+    for marque, lst in par.items():
+        exclus = {k for k, _ in mots_titre(marque)} | {k for a in lst for k, _ in mots_titre(a["recherche"]) if k not in TYPES}
+        info = []
+        df, forme, avant = {}, {}, {}
+        for a in lst:
+            ks = {}
+            mots = mots_titre(a["titre"])
+            for j, (k, w) in enumerate(mots):
+                if k in MOTS_VIDES or k in exclus:
+                    continue
+                if k not in ks and j and mots[j - 1][0] not in TYPES and mots[j - 1][0] not in exclus:
+                    avant.setdefault(k, {}).setdefault(mots[j - 1][1].lower(), 0)
+                    avant[k][mots[j - 1][1].lower()] += 1
+                ks.setdefault(k, w)
+            typ = next((TYPES[k] for k in ks if k in TYPES), None)
+            info.append((a, typ, ks))
+            for k, w in ks.items():
+                df[k] = df.get(k, 0) + 1
+                forme.setdefault(k, {}).setdefault(w, 0)
+                forme[k][w] += 1
+        plafond = max(MODELE_MIN, 0.6 * len(lst))  # un mot présent presque partout ne distingue rien
+        for a, typ, ks in info:
+            cands = [k for k in ks if k not in TYPES and MODELE_MIN <= df[k] <= plafond]
+            noms = [k for k in cands if k not in MATIERES] or cands
+            nom = min(noms, key=lambda k: (df[k], k)) if noms else None  # le mot le plus précis
+            g = f"{marque}|{nom or (typ or 'autre')}"
+            de[a["id"]] = g
+            G = groupes.setdefault(g, {"cle": g, "marque": marque, "nom": nom, "types": {}, "annonces": []})
+            G["annonces"].append(a)
+            if typ:
+                G["types"][typ] = G["types"].get(typ, 0) + 1
+            if nom:
+                f = forme[nom]
+                G["forme"] = max(f, key=f.get).lower()
+                # Mot qui précède presque toujours le modèle (« grand » froid, « retro » pile…)
+                av = avant.get(nom) or {}
+                m = max(av, key=av.get) if av else None
+                if m and av[m] >= 0.6 * df[nom]:
+                    G["forme"] = f"{m} {G['forme']}"
+    for G in groupes.values():
+        typ = max(G["types"], key=G["types"].get) if G["types"] else ""
+        if G["nom"]:
+            mot = G["forme"]
+            mot = mot[:1].upper() + mot[1:]
+            G["libelle"] = f"{typ} {mot}" if typ else mot
+        else:
+            G["libelle"] = f"{typ or 'Autres'} sans modèle"
+        lst = G["annonces"]
+        vendus = [a for a in lst if a["statut"] == "vendu" and a["prix"] is not None]
+        dispo = [a for a in lst if a["statut"] in ("dispo", "reserve")]
+        likes = [a.get("likes") or 0 for a in dispo]
+        G["vendus"], G["dispo"] = vendus, dispo
+        G["v24"] = sum(1 for a in vendus if (heures(a.get("publie"), a["vendu_vu"]) or 1e9) <= 24)
+        G["median"] = statistics.median(a["prix"] for a in vendus) if vendus else None
+        G["achat"] = prix_achat_max(G["median"]) if vendus else None
+        delais = [h for h in (heures(a.get("publie"), a["vendu_vu"]) for a in vendus) if h is not None]
+        G["delai"] = statistics.median(delais) if delais else None
+        G["likes"] = sum(likes) / len(likes) if likes else None
+        G["likes_max"] = max(likes, default=0)
+        rapides = sorted(vendus, key=lambda a: heures(a.get("publie"), a["vendu_vu"]) or 1e9)
+        aimees = sorted(dispo, key=lambda a: a.get("likes") or 0, reverse=True)
+        G["photo"] = next((a for a in rapides + aimees if a["photo"]), None)
+        premier = (etat.get("modeles_vus") or {}).get(G["cle"])
+        G["nouveau"] = bool(G["nom"] and premier and t0 - premier <= NOUVEAU_H * 3600
+                            and (vendus or G["likes_max"] >= NOUVEAU_LIKES))
+    return groupes, de
+
+
+def noter_modeles(etat, t0):
+    """Retient la date d'apparition de chaque modèle (badge « Nouveau »). Au tout premier passage, rien n'est nouveau."""
+    groupes, _ = modeles(etat, t0)
+    debut = "modeles_vus" not in etat
+    vus = etat.setdefault("modeles_vus", {})
+    for g, G in groupes.items():
+        if G["nom"] and g not in vus:
+            vus[g] = 0 if debut else t0
+
+
+def chauffe(etat, t0):
+    """Annonces encore en vente qui prennent le plus de likes par heure depuis leur mise en ligne."""
+    out = []
+    for a in etat["annonces"].values():
+        if a["statut"] in ("dispo", "reserve") and a.get("publie") and (a.get("likes") or 0) >= CHAUFFE_MIN_LIKES:
+            h = max(1.0, heures(a["publie"], a.get("dernier_dispo") or t0))
+            out.append((a["likes"] / h, h, a))
+    out.sort(key=lambda x: x[0], reverse=True)
+    return out[:CHAUFFE_N]
+
+
 # ---------------------------------------------------------------- passage
 
 def passage():
@@ -645,6 +798,7 @@ def passage():
     if not est_nuit():
         resume_semaine(etat, t0)
 
+    noter_modeles(etat, t0)
     etat["dernier_passage"] = t0
     ecrire_etat(etat)
     ecrire_rapport(etat)
@@ -673,6 +827,10 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
 .achat{font-weight:700;color:var(--accent)}
+h3{font-size:16px;margin:0 0 8px}h3 .m{font-weight:400}#modeles{margin-bottom:16px}
+.mods{display:grid;grid-auto-flow:column;grid-auto-columns:150px;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
+.mod{font:inherit;color:inherit;text-align:left;padding:0;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;scroll-snap-align:start}
+.mod .ph,.mods .card .ph{aspect-ratio:1}.mods .card{scroll-snap-align:start}.mod.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}.mod .body span{display:block}
 @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}}"""
 
 
@@ -700,6 +858,7 @@ def ecrire_rapport(etat):
         """Données de la visionneuse : la photo s'ouvre en grand, avec un bouton vers l'annonce."""
         return f'data-u="{html.escape(a["url"])}" data-t="{html.escape(a["titre"])} · {fmt_prix(a["prix"])}"'
 
+    groupes, groupe_de = modeles(etat, t0)
     vendus = sorted([a for a in ann if a["statut"] == "vendu"], key=lambda a: a["vendu_vu"], reverse=True)
     cartes = []
     for a in vendus:
@@ -707,7 +866,7 @@ def ecrire_rapport(etat):
         img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" {zoom(a)} '
                f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
         cartes.append(
-            f'<article class="card" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}"><div class="ph">{img}<span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
+            f'<article class="card" data-g="{html.escape(groupe_de.get(a["id"], ""))}" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}"><div class="ph">{img}<span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
             f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="m">{html.escape(a["recherche"])}</span>'
             f'<span class="t">{html.escape(a["titre"])}</span><span class="m">{html.escape(" · ".join(x for x in (a["marque"], a["taille"], a["etat_article"]) if x))}'
             f'{" · ♥ " + str(a["likes"]) if a.get("likes") else ""}</span>'
@@ -728,6 +887,46 @@ def ecrire_rapport(etat):
         f"""{''.join(lignes_cl) or f'<tr><td colspan="7">Pas encore assez de ventes (au moins {CLASSEMENT_MIN_VENTES} par recherche sur {CLASSEMENT_J} jours).</td></tr>'}</tbody></table></div>"""
         f"""<p class="sub">Sur les {CLASSEMENT_J} derniers jours. Achat max : {ACHAT_PART * 100:.0f} % du prix médian vendu, avec au moins {ACHAT_MARGE} € de marge. Les vignettes sont les ventes les plus rapides.</p></section>""")
 
+    # Modèles : une carte par modèle, affichées pour la marque choisie (les 8 meilleurs toutes marques sinon)
+    mods = [G for G in groupes.values() if (G["vendus"] or G["nouveau"]) and len(G["annonces"]) >= 2]
+    mods.sort(key=lambda G: (bool(G["nom"]), len(G["vendus"]), G["v24"], G["likes"] or 0), reverse=True)
+    top = {G["cle"] for G in sorted([G for G in mods if G["nom"]], key=lambda G: (G["v24"], len(G["vendus"])), reverse=True)[:8]} | {G["cle"] for G in mods if G["nouveau"]}
+    cartes_mod = []
+    NOUVEAU_BADGE = '<span class="b d hot">Nouveau</span>'
+    for G in mods:
+        p = G["photo"]
+        img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(p["photo"])}">' if p else "Pas de photo")
+        achat = f'<span class="b p">≤ {fmt_prix(round(G["achat"]))}</span>' if G["achat"] is not None else ""
+        dispo = f'{len(G["dispo"])} en vente' + (f' · ♥ {G["likes"]:.0f} en moy.' if G["dispo"] else "")
+        cartes_mod.append(
+            f'<button type="button" class="mod" data-g="{html.escape(G["cle"])}" data-m="{html.escape(G["marque"].lower())}"{" data-top" if G["cle"] in top else ""}>'
+            f'<span class="ph">{img}{NOUVEAU_BADGE if G["nouveau"] else ""}'
+            f'{achat}</span><span class="body">'
+            f'<span class="m">{html.escape(G["marque"])}</span><span class="t">{html.escape(G["libelle"])}</span>'
+            f'<span>{len(G["vendus"])} vendue{"s" if len(G["vendus"]) > 1 else ""}{" · médian " + fmt_prix(G["median"]) if G["vendus"] else ""}</span>'
+            f'<span class="m">{G["v24"]} en &lt; 24 h{" · délai médian " + fmt_h(G["delai"]) if G["delai"] is not None else ""}</span><span class="m">{dispo}</span></span></button>')
+    section_mod = (
+        f'<div id="modeles"{"" if cartes_mod else " hidden"}><h3>Modèles <span class="m" id="mod-aide">les plus rapides, toutes marques : choisis une marque pour voir les siens</span></h3>'
+        f'<div class="mods">{"".join(cartes_mod)}</div><p class="sub">Modèles repérés aux mots qui reviennent dans les titres (au moins {MODELE_MIN} annonces). '
+        f'Le prix en bas de la photo est l’achat max. Touche un modèle pour ne garder que ses ventes, retouche-le pour tout revoir.</p></div>')
+
+    ch = chauffe(etat, t0)
+    cartes_ch = []
+    for _, h, a in ch:
+        img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" {zoom(a)} '
+               f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
+        G = groupes.get(groupe_de.get(a["id"], ""))
+        achat = f'achat ≤ {fmt_prix(round(G["achat"]))}' if G and G["achat"] is not None and G["nom"] else ""
+        cartes_ch.append(
+            f'<article class="card"><div class="ph">{img}<span class="b d hot">♥ {a["likes"]} en {fmt_h(h)}</span>'
+            f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="m">{html.escape(G["libelle"] + " · " if G and G["nom"] else "")}{html.escape(a["marque"] or a["recherche"])}</span>'
+            f'<span class="t">{html.escape(a["titre"])}</span><span class="m">{html.escape(" · ".join(x for x in (a["taille"], achat) if x))}</span>'
+            f'<a href="{html.escape(a["url"])}" target="_blank" rel="noopener">Voir l’annonce ↗</a></div></article>')
+    section_ch = (
+        f'<section><h2>Ça chauffe</h2><div class="mods">{"".join(cartes_ch)}</div>'
+        f'<p class="sub">Annonces encore en vente qui prennent le plus de likes par heure depuis leur mise en ligne (au moins {CHAUFFE_MIN_LIKES} likes).</p></section>'
+        if cartes_ch else "")
+
     maj = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
     page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Ventes suivies</title>
@@ -735,21 +934,27 @@ def ecrire_rapport(etat):
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ventes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>{CSS}</style></head><body><div class="tirer" id="tirer">↓ Tirer pour actualiser</div><div class="wrap">
 <header><div class="haut"><h1>Ventes suivies</h1><button type="button" id="actualiser">↻ Actualiser</button></div><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
 Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vente a été repérée : la vente réelle a eu lieu avant.</p></header>
+{section_ch}
 {section_cl}
 <section><h2>Par recherche</h2><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></section>
-<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f-m" aria-label="Marque" hidden></select><select id="f-r" aria-label="Recherche" hidden></select></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
+<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f-m" aria-label="Marque" hidden></select><select id="f-r" aria-label="Recherche" hidden></select></div>{section_mod}<div class="grid" id="grid">{''.join(cartes)}</div></section></div>
 <div class="vue" id="vue" hidden><button type="button" aria-label="Fermer">×</button><img alt="" referrerpolicy="no-referrer"><p></p><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div>
-<script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),choix={{r:'',m:''}};
+<script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),choix={{r:'',m:'',g:''}},
+mods=[].slice.call(document.querySelectorAll('.mod')),aide=document.getElementById('mod-aide');
 function cle(e,a){{return a==='m'?(e.dataset.m||'').toLowerCase():e.dataset.r}}
-function appliquer(){{cartes.forEach(function(e){{e.hidden=(!!choix.r&&cle(e,'r')!==choix.r)||(!!choix.m&&cle(e,'m')!==choix.m)}})}}
+function appliquer(){{cartes.forEach(function(e){{e.hidden=(!!choix.r&&cle(e,'r')!==choix.r)||(!!choix.m&&cle(e,'m')!==choix.m)||(!!choix.g&&e.dataset.g!==choix.g)}});
+var n=0;mods.forEach(function(e){{e.hidden=choix.m?e.dataset.m!==choix.m:!e.hasAttribute('data-top');if(!e.hidden)n++;e.classList.toggle('on',e.dataset.g===choix.g)}});
+if(aide)aide.textContent=choix.m?'de cette marque, du plus vendu au moins vendu':'les plus rapides, toutes marques : choisis une marque pour voir les siens';
+document.getElementById('modeles').hidden=!n}}
+mods.forEach(function(e){{e.onclick=function(){{choix.g=choix.g===e.dataset.g?'':e.dataset.g;appliquer();if(choix.g)g.scrollIntoView({{behavior:'smooth',block:'start'}})}}}});
 function menu(id,a,tout){{var c=document.getElementById(id),n={{}},nom={{}};
 cartes.forEach(function(e){{var k=cle(e,a);if(!k)return;n[k]=(n[k]||0)+1;nom[k]=nom[k]||(a==='m'?e.dataset.m:k)}});
 var k=Object.keys(n).sort(function(x,y){{return nom[x].localeCompare(nom[y],'fr')}});if(k.length<2)return;
 [''].concat(k).forEach(function(r){{var o=document.createElement('option');o.value=r;o.textContent=(r?nom[r]:tout)+' ('+(r?n[r]:cartes.length)+')';c.appendChild(o)}});
-c.hidden=false;c.onchange=function(){{choix[a]=c.value;appliquer()}}}}
-menu('f-m','m','Toutes les marques');menu('f-r','r','Toutes les recherches')}})();
+c.hidden=false;c.onchange=function(){{choix[a]=c.value;choix.g='';appliquer()}}}}
+menu('f-m','m','Toutes les marques');menu('f-r','r','Toutes les recherches');appliquer()}})();
 (function(){{var v=document.getElementById('vue'),im=v.querySelector('img'),t=v.querySelector('p'),l=v.querySelector('a');
 function fermer(){{v.hidden=true;im.removeAttribute('src')}}
 document.addEventListener('click',function(e){{var x=e.target.closest('img[data-u]');if(!x)return;e.preventDefault();
