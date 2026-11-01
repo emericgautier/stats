@@ -745,13 +745,12 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f" aria-label="Marque ou recherche" hidden></select></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
 <div class="vue" id="vue" hidden><button type="button" aria-label="Fermer">×</button><img alt="" referrerpolicy="no-referrer"><p></p><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div>
 <script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),c=document.getElementById('f'),choix=[],par={{}};
-// Un seul menu : les marques, et sous une marque suivie par plusieurs recherches, chacune de ses recherches
+// Un seul menu : toutes les ventes, puis une ligne par marque
 cartes.forEach(function(e){{var m=(e.dataset.m||'').trim(),k=m.toLowerCase();if(!k)return;var b=par[k]||(par[k]={{nom:m,n:0,r:{{}}}});b.n++;b.r[e.dataset.r]=(b.r[e.dataset.r]||0)+1}});
 function ajouter(texte,f){{var o=document.createElement('option');o.value=choix.length;o.textContent=texte;choix.push(f);c.appendChild(o)}}
 ajouter('Toutes les ventes ('+cartes.length+')',null);
 var ks=Object.keys(par).sort(function(x,y){{return par[x].nom.localeCompare(par[y].nom,'fr')}});
-ks.forEach(function(k){{var b=par[k];ajouter(b.nom+' ('+b.n+')',{{m:k}});var rs=Object.keys(b.r).sort(function(x,y){{return x.localeCompare(y,'fr')}});
-if(rs.length>1)rs.forEach(function(r){{ajouter('\u00a0\u00a0\u00a0↳ '+r+' ('+b.r[r]+')',{{m:k,r:r}})}})}});
+ks.forEach(function(k){{var b=par[k];ajouter(b.nom+' ('+b.n+')',{{m:k}})}});
 if(ks.length>1||choix.length>2){{c.hidden=false;c.onchange=function(){{var f=choix[+c.value];
 cartes.forEach(function(e){{e.hidden=!!f&&((e.dataset.m||'').trim().toLowerCase()!==f.m||(!!f.r&&e.dataset.r!==f.r))}})}}}}}})();
 (function(){{var v=document.getElementById('vue'),im=v.querySelector('img'),t=v.querySelector('p'),l=v.querySelector('a');
