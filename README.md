@@ -73,6 +73,10 @@ Pour ne plus recevoir de notifications sans arrêter le suivi, supprime le secre
 
 En haut de la page, les recherches sont classées sur les 7 derniers jours : ventes en moins de 24 h, part vendue en moins de 24 h, prix médian vendu et prix d'achat max, avec les photos des ventes les plus rapides. Chaque lundi matin, les 5 premières arrivent aussi sur le sujet ntfy principal, avec un lien vers la page.
 
+### Analyses
+
+Bouton **Analyses** en haut de la page : `docs/analyses/` liste les analyses par marque et par date. Pour en ajouter une, dépose le fichier HTML dans `docs/analyses/` et ajoute une ligne au tableau `A` de `docs/analyses/index.html`. La page étant publique, n'y mets pas les exports bruts.
+
 ## Limites
 
 - Le délai affiché est un maximum : la vente a eu lieu entre le dernier passage où l'annonce était disponible et celui où elle a été vue vendue.
