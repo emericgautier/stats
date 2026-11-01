@@ -73,6 +73,10 @@ Pour ne plus recevoir de notifications sans arrêter le suivi, supprime le secre
 
 En haut de la page, les recherches sont classées sur les 7 derniers jours : ventes en moins de 24 h, part vendue en moins de 24 h, prix médian vendu et prix d'achat max, avec les photos des ventes les plus rapides. Chaque lundi matin, les 5 premières arrivent aussi sur le sujet ntfy principal, avec un lien vers la page.
 
+### Ma liste
+
+Tout en haut : les 10 modèles au maximum qui ont au moins 3 ventes en moins de 24 h, avec leur achat max. Le lien « Chercher » ouvre Vinted sur ce modèle, en très bon état, jusqu'à l'achat max (le même filtre est à recopier dans Kops). Quand un modèle entre dans la liste, une notification arrive sur le sujet principal (pas la nuit). Dessous, la checklist pour vérifier une annonce en 30 secondes. Réglages : `LISTE_N`, `LISTE_MIN_RAPIDES`.
+
 ### Ça chauffe
 
 Tout en haut de la page : les 10 annonces encore en vente qui prennent le plus de likes par heure depuis leur mise en ligne (au moins 3 likes), avec photo, prix, lien et l'achat max de leur modèle quand il est connu. Les likes sont relevés à chaque passage, tant que l'annonce apparaît dans sa recherche.
@@ -80,6 +84,8 @@ Tout en haut de la page : les 10 annonces encore en vente qui prennent le plus d
 ### Modèles
 
 Dans « Vendues », au-dessus des annonces : une carte par modèle. Un modèle est un mot qui revient dans au moins 3 titres d'une même marque (Cloe, Hoktown, Grand froid…) ; les annonces sans nom de modèle restent groupées par type (« Doudoune sans modèle »). Chaque carte donne les ventes, le prix médian, l'achat max, les ventes en moins de 24 h, le délai médian, les annonces en vente et leurs likes moyens. Sans marque choisie, ce sont les 8 modèles les plus rapides toutes marques ; avec une marque, tous les siens. Toucher une carte ne garde que les ventes de ce modèle.
+
+Sans nom de modèle, les annonces sont groupées par type et coupe (« Manteau long », « Doudoune sans manches », « Manteau long laine »…), et ces groupes peuvent aussi entrer dans « Ma liste ». Chaque carte indique la couleur et la taille qui reviennent dans ses ventes rapides (« Part vite : Noir · M »). Quand une marque est choisie, un encadré donne sa part d'annonces vendues en moins de 24 h et les couleurs, tailles et coupes qui partent vite ou mal (au moins `PROFIL_MIN` = 5 annonces chacune).
 
 Le badge **Nouveau** marque un modèle apparu depuis moins de 72 h qui a déjà une vente ou une annonce à 5 likes ou plus. Réglages : `MODELE_MIN`, `NOUVEAU_H`, `NOUVEAU_LIKES`, `CHAUFFE_N`, `CHAUFFE_MIN_LIKES`.
 
