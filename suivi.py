@@ -673,6 +673,9 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
 .achat{font-weight:700;color:var(--accent)}
+.repli summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}.repli summary::-webkit-details-marker{display:none}
+.repli summary h2{margin:0}.repli summary::after{content:"▾ afficher";font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:3px 10px}
+.repli[open] summary::after{content:"▴ masquer"}.repli[open] summary{margin-bottom:8px}
 @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}}"""
 
 
@@ -723,10 +726,10 @@ def ecrire_rapport(etat):
         f"<td><div class=\"vig\">{''.join(vignette(a) for a in c['exemples'])}</div></td></tr>"
         for k, c in enumerate(cl, 1)]
     section_cl = (
-        f"""<section><h2>Classement de la semaine</h2><div class="tbl"><table><thead><tr><th>#</th><th>Recherche</th><th>Achat max</th><th>Prix médian vendu</th>"""
+        f"""<section><details class="repli"><summary><h2>Classement de la semaine</h2></summary><div class="tbl"><table><thead><tr><th>#</th><th>Recherche</th><th>Achat max</th><th>Prix médian vendu</th>"""
         f"""<th>Vendues &lt; 24 h</th><th>Taux 24 h</th><th>Plus rapides</th></tr></thead><tbody>"""
         f"""{''.join(lignes_cl) or f'<tr><td colspan="7">Pas encore assez de ventes (au moins {CLASSEMENT_MIN_VENTES} par recherche sur {CLASSEMENT_J} jours).</td></tr>'}</tbody></table></div>"""
-        f"""<p class="sub">Sur les {CLASSEMENT_J} derniers jours. Achat max : {ACHAT_PART * 100:.0f} % du prix médian vendu, avec au moins {ACHAT_MARGE} € de marge. Les vignettes sont les ventes les plus rapides.</p></section>""")
+        f"""<p class="sub">Sur les {CLASSEMENT_J} derniers jours. Achat max : {ACHAT_PART * 100:.0f} % du prix médian vendu, avec au moins {ACHAT_MARGE} € de marge. Les vignettes sont les ventes les plus rapides.</p></details></section>""")
 
     maj = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
     page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
