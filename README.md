@@ -73,6 +73,10 @@ Pour ne plus recevoir de notifications sans arrêter le suivi, supprime le secre
 
 En haut de la page, les recherches sont classées sur les 7 derniers jours : ventes en moins de 24 h, part vendue en moins de 24 h, prix médian vendu et prix d'achat max, avec les photos des ventes les plus rapides. Chaque lundi matin, les 5 premières arrivent aussi sur le sujet ntfy principal, avec un lien vers la page.
 
+### Ma liste
+
+Tout en haut : les 10 modèles au maximum qui ont au moins 3 ventes en moins de 24 h, avec leur achat max. Le lien « Chercher » ouvre Vinted sur ce modèle, en très bon état, jusqu'à l'achat max (le même filtre est à recopier dans Kops). Quand un modèle entre dans la liste, une notification arrive sur le sujet principal (pas la nuit). Dessous, la checklist pour vérifier une annonce en 30 secondes. Réglages : `LISTE_N`, `LISTE_MIN_RAPIDES`.
+
 ### Ça chauffe
 
 Tout en haut de la page : les 10 annonces encore en vente qui prennent le plus de likes par heure depuis leur mise en ligne (au moins 3 likes), avec photo, prix, lien et l'achat max de leur modèle quand il est connu. Les likes sont relevés à chaque passage, tant que l'annonce apparaît dans sa recherche.

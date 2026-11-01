@@ -58,6 +58,8 @@ NOUVEAU_H = 72              # badge « Nouveau » : modèle apparu depuis moins 
 NOUVEAU_LIKES = 5           # … qui a déjà une vente ou une annonce avec au moins X likes
 CHAUFFE_N = 10              # annonces en vente affichées dans « Ça chauffe »
 CHAUFFE_MIN_LIKES = 3       # likes minimum pour y entrer
+LISTE_N = 10                # « Ma liste » : modèles gardés au maximum…
+LISTE_MIN_RAPIDES = 3       # … qui ont au moins X ventes en moins de 24 h
 COPIE_MARQUE = False        # True : copie de chaque vente sur le sujet de sa marque (sujet-marque) en plus du sujet principal
 RESUME_JOUR, RESUME_HEURE = 0, 8  # résumé de la semaine le lundi (0) à partir de 8 h
 
@@ -670,6 +672,37 @@ def noter_modeles(etat, t0):
             vus[g] = 0 if debut else t0
 
 
+def ma_liste(groupes):
+    """Les modèles à acheter : ceux qui ont le plus de ventes en moins de 24 h."""
+    lst = [G for G in groupes.values() if G["nom"] and G["achat"] is not None and G["v24"] >= LISTE_MIN_RAPIDES]
+    lst.sort(key=lambda G: (G["v24"], len(G["vendus"]), G["median"]), reverse=True)
+    return lst[:LISTE_N]
+
+
+def lien_recherche(G):
+    """Recherche Vinted du modèle, très bon état, jusqu'à l'achat max, plus récentes d'abord."""
+    q = urlencode({"search_text": f"{G['marque']} {G['forme']}", "price_to": round(G["achat"]),
+                   "status_ids[]": 2, "currency": "EUR", "order": "newest_first"})
+    return f"{BASE or 'https://www.vinted.fr'}/catalog?{q}"
+
+
+def noter_liste(etat, t0):
+    """Notifie quand un modèle entre dans « Ma liste » (une fois par modèle). Au tout premier passage, rien n'est notifié."""
+    groupes, _ = modeles(etat, t0)
+    debut = "liste_vue" not in etat
+    vus = set(etat.get("liste_vue", []))
+    for G in ma_liste(groupes):
+        if G["cle"] in vus:
+            continue
+        vus.add(G["cle"])
+        if not debut:
+            p = G["photo"]
+            notifier(f"Nouveau dans ta liste : {G['libelle']} · {G['marque']}",
+                     f"{G['v24']} ventes en moins de 24 h · médian {fmt_prix(G['median'])} → achat ≤ {fmt_prix(round(G['achat']))}",
+                     lien=lien_recherche(G), photo=p["photo"] if p else None, tags="star")
+    etat["liste_vue"] = sorted(vus)
+
+
 def chauffe(etat, t0):
     """Annonces encore en vente qui prennent le plus de likes par heure depuis leur mise en ligne."""
     out = []
@@ -799,6 +832,8 @@ def passage():
         resume_semaine(etat, t0)
 
     noter_modeles(etat, t0)
+    if not est_nuit():
+        noter_liste(etat, t0)
     etat["dernier_passage"] = t0
     ecrire_etat(etat)
     ecrire_rapport(etat)
@@ -827,7 +862,8 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
 .achat{font-weight:700;color:var(--accent)}
-h3{font-size:16px;margin:0 0 8px}h3 .m{font-weight:400}#modeles{margin-bottom:16px}
+h3{font-size:16px;margin:0 0 8px}.go{color:var(--accent);font-weight:700;text-decoration:none}
+.verif{margin-top:10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px}.verif summary{font-weight:600;cursor:pointer}.verif ol{margin:8px 0;padding-left:20px}.verif p{margin:0;font-weight:600}h3 .m{font-weight:400}#modeles{margin-bottom:16px}
 .mods{display:grid;grid-auto-flow:column;grid-auto-columns:150px;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
 .mod{font:inherit;color:inherit;text-align:left;padding:0;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;scroll-snap-align:start}
 .mod .ph,.mods .card .ph{aspect-ratio:1}.mods .card{scroll-snap-align:start}.mod.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}.mod .body span{display:block}
@@ -910,6 +946,26 @@ def ecrire_rapport(etat):
         f'<div class="mods">{"".join(cartes_mod)}</div><p class="sub">Modèles repérés aux mots qui reviennent dans les titres (au moins {MODELE_MIN} annonces). '
         f'Le prix en bas de la photo est l’achat max. Touche un modèle pour ne garder que ses ventes, retouche-le pour tout revoir.</p></div>')
 
+    liste = ma_liste(groupes)
+    lignes_li = []
+    for k, G in enumerate(liste, 1):
+        p = G["photo"]
+        img = f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(p["photo"])}" {zoom(p)}>' if p else ""
+        lignes_li.append(
+            f'<tr><td>{k}</td><td><div class="vig"><a>{img}</a></div></td><td><b>{html.escape(G["libelle"])}</b> <span class="m">{html.escape(G["marque"])}</span><br>'
+            f'<a class="go" href="{html.escape(lien_recherche(G))}" target="_blank" rel="noopener">Chercher ≤ {fmt_prix(round(G["achat"]))} ↗</a></td>'
+            f'<td class="achat">≤ {fmt_prix(round(G["achat"]))}</td><td>{fmt_prix(G["median"])}</td><td>{G["v24"]} / {len(G["vendus"])}</td></tr>')
+    section_li = (
+        f"""<section><h2>Ma liste</h2><div class="tbl"><table><thead><tr><th>#</th><th></th><th>Modèle</th><th>Achat max</th><th>Médian vendu</th>"""
+        f"""<th>Vendues &lt; 24 h</th></tr></thead><tbody>"""
+        f"""{''.join(lignes_li) or f'<tr><td colspan="6">Aucun modèle n’a encore {LISTE_MIN_RAPIDES} ventes en moins de 24 h.</td></tr>'}</tbody></table></div>"""
+        f"""<p class="sub">Les {LISTE_N} modèles au maximum qui ont au moins {LISTE_MIN_RAPIDES} ventes en moins de 24 h. Tout le reste, tu l’ignores. """
+        f"""Un modèle qui entre dans la liste arrive aussi sur ntfy. « Chercher » ouvre Vinted en très bon état jusqu’à l’achat max : c’est aussi le filtre à recopier dans Kops.</p>"""
+        f"""<details class="verif"><summary>Vérifier une annonce en 30 secondes</summary><ol>"""
+        f"""<li>Étiquette de marque visible en photo.</li><li>Prix ≤ achat max du modèle.</li><li>Très bon état, sans défaut, tache ni trou.</li>"""
+        f"""<li>Vraies photos (pas de photos catalogue).</li><li>Vendeur avec des avis.</li></ol>"""
+        f"""<p>Tout est bon : tu achètes. Tu hésites : tu passes.</p></details></section>""")
+
     ch = chauffe(etat, t0)
     cartes_ch = []
     for _, h, a in ch:
@@ -934,6 +990,7 @@ def ecrire_rapport(etat):
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ventes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>{CSS}</style></head><body><div class="tirer" id="tirer">↓ Tirer pour actualiser</div><div class="wrap">
 <header><div class="haut"><h1>Ventes suivies</h1><button type="button" id="actualiser">↻ Actualiser</button></div><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
 Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vente a été repérée : la vente réelle a eu lieu avant.</p></header>
+{section_li}
 {section_ch}
 {section_cl}
 <section><h2>Par recherche</h2><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
