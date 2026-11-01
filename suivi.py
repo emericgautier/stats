@@ -58,6 +58,7 @@ NOUVEAU_H = 72              # badge « Nouveau » : modèle apparu depuis moins 
 NOUVEAU_LIKES = 5           # … qui a déjà une vente ou une annonce avec au moins X likes
 CHAUFFE_N = 10              # annonces en vente affichées dans « Ça chauffe »
 CHAUFFE_MIN_LIKES = 3       # likes minimum pour y entrer
+PROFIL_MIN = 5              # annonces minimum pour juger une couleur, une taille ou une coupe d'une marque
 LISTE_N = 10                # « Ma liste » : modèles gardés au maximum…
 LISTE_MIN_RAPIDES = 3       # … qui ont au moins X ventes en moins de 24 h
 COPIE_MARQUE = False        # True : copie de chaque vente sur le sujet de sa marque (sujet-marque) en plus du sujet principal
@@ -582,6 +583,48 @@ def mots_titre(titre):
     return out
 
 
+COULEURS = {
+    "Noir": "noir noire black schwarz zwart negro nero", "Blanc / écru": "blanc blanche white ecru creme cream weis wit offwhite",
+    "Bleu": "bleu marine navy blue blau blauw azul", "Gris": "gris grise grey gray anthracite grau grijs",
+    "Beige / camel": "beige camel sand taupe sable", "Vert / kaki": "vert verte kaki khaki green olive grun groen",
+    "Rose": "rose pink rosa", "Rouge / bordeaux": "rouge red bordeaux burgundy rot rood", "Marron": "marron brown chocolat braun bruin cognac",
+    "Jaune / moutarde": "jaune moutarde yellow mustard gelb", "Violet": "violet aubergine lilas lavande purple",
+}
+COULEUR_DE = {m: c for c, mots in COULEURS.items() for m in mots.split()}
+FEMININS = {"Doudoune", "Veste", "Parka", "Chemise", "Blouse", "Robe", "Jupe", "Polaire", "Combinaison", "Doudounette"}
+
+
+def coupe_titre(titre):
+    t = " " + re.sub(r"[^a-z0-9/]+", " ", _sans_accent(titre or "")) + " "
+    if any(m in t for m in (" sans manche", " sleeveless", " bodywarmer", " smanicato", " sin manga")):
+        return "sans manches"
+    if any(m in t for m in (" mi long", " 3/4 ", " midi ")):
+        return "mi-long"
+    if any(m in t for m in (" long ", " longue ", " lang ", " maxi ")):
+        return "long"
+    if any(m in t for m in (" court ", " courte ", " crop", " cropped ", " kurz ")):
+        return "court"
+    return None
+
+
+def couleur_titre(titre):
+    for k, _ in mots_titre(titre):
+        if k in COULEUR_DE:
+            return COULEUR_DE[k]
+    return None
+
+
+def taille_courte(a):
+    t = (a.get("taille") or "").split("/")[0].strip()
+    return t.upper() if t else None
+
+
+def libelle_coupe(typ, coupe):
+    if not coupe or coupe == "sans manches":
+        return coupe or ""
+    return coupe + (("ue" if coupe.endswith("long") else "e") if typ in FEMININS else "")
+
+
 def cle_marque(a):
     return (a.get("marque") or "").strip() or a["recherche"]
 
@@ -619,9 +662,11 @@ def modeles(etat, t0):
             cands = [k for k in ks if k not in TYPES and MODELE_MIN <= df[k] <= plafond]
             noms = [k for k in cands if k not in MATIERES] or cands
             nom = min(noms, key=lambda k: (df[k], k)) if noms else None  # le mot le plus précis
-            g = f"{marque}|{nom or (typ or 'autre')}"
+            # Sans nom de modèle, ou avec une simple matière : type + coupe (manteau long, manteau long laine…)
+            coupe = coupe_titre(a["titre"]) if not nom or nom in MATIERES else None
+            g = (f"{marque}|{nom}" if nom not in MATIERES else f"{marque}|{nom}|{typ or ''}|{coupe or ''}") if nom else f"{marque}|#{typ or 'autre'}|{coupe or ''}"
             de[a["id"]] = g
-            G = groupes.setdefault(g, {"cle": g, "marque": marque, "nom": nom, "types": {}, "annonces": []})
+            G = groupes.setdefault(g, {"cle": g, "marque": marque, "nom": nom, "coupe": coupe, "types": {}, "annonces": []})
             G["annonces"].append(a)
             if typ:
                 G["types"][typ] = G["types"].get(typ, 0) + 1
@@ -637,10 +682,22 @@ def modeles(etat, t0):
         typ = max(G["types"], key=G["types"].get) if G["types"] else ""
         if G["nom"]:
             mot = G["forme"]
-            mot = mot[:1].upper() + mot[1:]
-            G["libelle"] = f"{typ} {mot}" if typ else mot
+            if G["nom"] in MATIERES:
+                c = libelle_coupe(typ, G["coupe"])
+                G["libelle"] = " ".join(x for x in (typ, c, mot.lower()) if x)
+                G["libelle"] = G["libelle"][:1].upper() + G["libelle"][1:]
+                G["mots"] = " ".join(x for x in (typ.lower(), c, mot.lower()) if x)
+            else:
+                mot = mot[:1].upper() + mot[1:]
+                G["libelle"] = f"{typ} {mot}" if typ else mot
+                G["mots"] = G["forme"]
         else:
-            G["libelle"] = f"{typ or 'Autres'} sans modèle"
+            typ = G["cle"].split("|")[-2][1:]
+            typ = "" if typ == "autre" else typ
+            c = libelle_coupe(typ, G["coupe"])
+            G["libelle"] = (f"{typ} {c}" if c else f"{typ} (autres)") if typ else "Autres"
+            G["mots"] = f"{typ.lower()} {c}".strip() if typ else ""
+        G["typ"] = typ
         lst = G["annonces"]
         vendus = [a for a in lst if a["statut"] == "vendu" and a["prix"] is not None]
         dispo = [a for a in lst if a["statut"] in ("dispo", "reserve")]
@@ -652,6 +709,7 @@ def modeles(etat, t0):
         delais = [h for h in (heures(a.get("publie"), a["vendu_vu"]) for a in vendus) if h is not None]
         G["delai"] = statistics.median(delais) if delais else None
         G["likes"] = sum(likes) / len(likes) if likes else None
+        G["part_vite"] = dominants([a for a in vendus if (heures(a.get("publie"), a["vendu_vu"]) or 1e9) <= 24] or vendus)
         G["likes_max"] = max(likes, default=0)
         rapides = sorted(vendus, key=lambda a: heures(a.get("publie"), a["vendu_vu"]) or 1e9)
         aimees = sorted(dispo, key=lambda a: a.get("likes") or 0, reverse=True)
@@ -672,16 +730,61 @@ def noter_modeles(etat, t0):
             vus[g] = 0 if debut else t0
 
 
+def dominants(vendus):
+    """Couleur et taille qui reviennent le plus dans ces ventes (au moins 2 fois et 40 %)."""
+    out = []
+    for f in (lambda a: couleur_titre(a["titre"]), taille_courte):
+        n = {}
+        for a in vendus:
+            v = f(a)
+            if v:
+                n[v] = n.get(v, 0) + 1
+        if n:
+            v = max(n, key=n.get)
+            if n[v] >= 2 and n[v] >= 0.4 * len(vendus):
+                out.append(v)
+    return out
+
+
+def profil_marques(etat, t0):
+    """Par marque : couleurs, tailles et coupes qui partent le plus vite (et le moins vite) en moins de 24 h."""
+    par = {}
+    for a in etat["annonces"].values():
+        if a.get("publie") and (a["statut"] == "vendu" or t0 - a["publie"] >= 24 * 3600) and a["statut"] != "supprime":
+            par.setdefault(cle_marque(a), []).append(a)
+    out = {}
+    for marque, lst in par.items():
+        if len(lst) < PROFIL_MIN * 2:
+            continue
+        vite = lambda a: a["statut"] == "vendu" and (heures(a["publie"], a["vendu_vu"]) or 1e9) <= 24
+        base = sum(1 for a in lst if vite(a)) / len(lst)
+        vals = []
+        for f in (lambda a: couleur_titre(a["titre"]), taille_courte, lambda a: coupe_titre(a["titre"])):
+            n = {}
+            for a in lst:
+                v = f(a)
+                if v:
+                    t = n.setdefault(v, [0, 0])
+                    t[0] += 1
+                    t[1] += vite(a)
+            vals += [(v, k / t, t) for v, (t, k) in n.items() if t >= PROFIL_MIN]
+        bons = sorted([x for x in vals if x[1] >= 1.3 * base and x[1] > 0], key=lambda x: -x[1])[:4]
+        mauvais = sorted([x for x in vals if x[1] <= 0.5 * base], key=lambda x: (x[1], -x[2]))[:3]
+        if bons or mauvais:
+            out[marque] = {"base": base, "n": len(lst), "bons": bons, "mauvais": mauvais}
+    return out
+
+
 def ma_liste(groupes):
     """Les modèles à acheter : ceux qui ont le plus de ventes en moins de 24 h."""
-    lst = [G for G in groupes.values() if G["nom"] and G["achat"] is not None and G["v24"] >= LISTE_MIN_RAPIDES]
+    lst = [G for G in groupes.values() if G["mots"] and G["achat"] is not None and G["v24"] >= LISTE_MIN_RAPIDES]
     lst.sort(key=lambda G: (G["v24"], len(G["vendus"]), G["median"]), reverse=True)
     return lst[:LISTE_N]
 
 
 def lien_recherche(G):
     """Recherche Vinted du modèle, très bon état, jusqu'à l'achat max, plus récentes d'abord."""
-    q = urlencode({"search_text": f"{G['marque']} {G['forme']}", "price_to": round(G["achat"]),
+    q = urlencode({"search_text": f"{G['marque']} {G['mots']}", "price_to": round(G["achat"]),
                    "status_ids[]": 2, "currency": "EUR", "order": "newest_first"})
     return f"{BASE or 'https://www.vinted.fr'}/catalog?{q}"
 
@@ -862,7 +965,8 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
 .achat{font-weight:700;color:var(--accent)}
-h3{font-size:16px;margin:0 0 8px}.go{color:var(--accent);font-weight:700;text-decoration:none}
+h3{font-size:16px;margin:0 0 8px}.go{color:var(--accent);font-weight:700;text-decoration:none}.vite{color:var(--accent);font-size:12px;font-weight:600}
+.profil{background:var(--accent-soft);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:14px}
 .verif{margin-top:10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px}.verif summary{font-weight:600;cursor:pointer}.verif ol{margin:8px 0;padding-left:20px}.verif p{margin:0;font-weight:600}h3 .m{font-weight:400}#modeles{margin-bottom:16px}
 .mods{display:grid;grid-auto-flow:column;grid-auto-columns:150px;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
 .mod{font:inherit;color:inherit;text-align:left;padding:0;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;scroll-snap-align:start}
@@ -926,13 +1030,14 @@ def ecrire_rapport(etat):
     # Modèles : une carte par modèle, affichées pour la marque choisie (les 8 meilleurs toutes marques sinon)
     mods = [G for G in groupes.values() if (G["vendus"] or G["nouveau"]) and len(G["annonces"]) >= 2]
     mods.sort(key=lambda G: (bool(G["nom"]), len(G["vendus"]), G["v24"], G["likes"] or 0), reverse=True)
-    top = {G["cle"] for G in sorted([G for G in mods if G["nom"]], key=lambda G: (G["v24"], len(G["vendus"])), reverse=True)[:8]} | {G["cle"] for G in mods if G["nouveau"]}
+    top = {G["cle"] for G in sorted([G for G in mods if G["nom"] or G["coupe"]], key=lambda G: (G["v24"], len(G["vendus"])), reverse=True)[:8]} | {G["cle"] for G in mods if G["nouveau"]}
     cartes_mod = []
     NOUVEAU_BADGE = '<span class="b d hot">Nouveau</span>'
     for G in mods:
         p = G["photo"]
         img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(p["photo"])}">' if p else "Pas de photo")
         achat = f'<span class="b p">≤ {fmt_prix(round(G["achat"]))}</span>' if G["achat"] is not None else ""
+        vite = f'<span class="vite">Part vite : {html.escape(" · ".join(G["part_vite"]))}</span>' if G["part_vite"] else ""
         dispo = f'{len(G["dispo"])} en vente' + (f' · ♥ {G["likes"]:.0f} en moy.' if G["dispo"] else "")
         cartes_mod.append(
             f'<button type="button" class="mod" data-g="{html.escape(G["cle"])}" data-m="{html.escape(G["marque"].lower())}"{" data-top" if G["cle"] in top else ""}>'
@@ -940,10 +1045,20 @@ def ecrire_rapport(etat):
             f'{achat}</span><span class="body">'
             f'<span class="m">{html.escape(G["marque"])}</span><span class="t">{html.escape(G["libelle"])}</span>'
             f'<span>{len(G["vendus"])} vendue{"s" if len(G["vendus"]) > 1 else ""}{" · médian " + fmt_prix(G["median"]) if G["vendus"] else ""}</span>'
-            f'<span class="m">{G["v24"]} en &lt; 24 h{" · délai médian " + fmt_h(G["delai"]) if G["delai"] is not None else ""}</span><span class="m">{dispo}</span></span></button>')
+            f'<span class="m">{G["v24"]} en &lt; 24 h{" · délai médian " + fmt_h(G["delai"]) if G["delai"] is not None else ""}</span><span class="m">{dispo}</span>{vite}</span></button>')
+    def pct(x):
+        return f"{100 * x:.0f} %"
+    profils = []
+    for marque, P in sorted(profil_marques(etat, t0).items()):
+        bons = " · ".join(f"<b>{html.escape(v)}</b> {pct(r)}" for v, r, _ in P["bons"]) or "rien qui se détache"
+        mauvais = " · ".join(f"{html.escape(v)} {pct(r)}" for v, r, _ in P["mauvais"])
+        profils.append(
+            f'<div class="profil" data-m="{html.escape(marque.lower())}" hidden><b>{html.escape(marque)}</b> : {pct(P["base"])} des annonces partent en moins de 24 h '
+            f'({P["n"]} suivies).<br>Part vite : {bons}{"<br>Part mal : " + mauvais if mauvais else ""}</div>')
     section_mod = (
-        f'<div id="modeles"{"" if cartes_mod else " hidden"}><h3>Modèles <span class="m" id="mod-aide">les plus rapides, toutes marques : choisis une marque pour voir les siens</span></h3>'
+        f'<div id="modeles"{"" if cartes_mod else " hidden"}><h3>Modèles <span class="m" id="mod-aide">les plus rapides, toutes marques : choisis une marque pour voir les siens</span></h3>{"".join(profils)}'
         f'<div class="mods">{"".join(cartes_mod)}</div><p class="sub">Modèles repérés aux mots qui reviennent dans les titres (au moins {MODELE_MIN} annonces). '
+        f'Sans nom de modèle, les annonces sont groupées par type et coupe (manteau long, doudoune sans manches…). Couleur, taille et coupe : part vendue en moins de 24 h, sur au moins {PROFIL_MIN} annonces. '
         f'Le prix en bas de la photo est l’achat max. Touche un modèle pour ne garder que ses ventes, retouche-le pour tout revoir.</p></div>')
 
     liste = ma_liste(groupes)
@@ -952,7 +1067,7 @@ def ecrire_rapport(etat):
         p = G["photo"]
         img = f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(p["photo"])}" {zoom(p)}>' if p else ""
         lignes_li.append(
-            f'<tr><td>{k}</td><td><div class="vig"><a>{img}</a></div></td><td><b>{html.escape(G["libelle"])}</b> <span class="m">{html.escape(G["marque"])}</span><br>'
+            f'<tr><td>{k}</td><td><div class="vig"><a>{img}</a></div></td><td><b>{html.escape(G["libelle"])}</b> <span class="m">{html.escape(G["marque"])}{" · " + html.escape(" · ".join(G["part_vite"])) if G["part_vite"] else ""}</span><br>'
             f'<a class="go" href="{html.escape(lien_recherche(G))}" target="_blank" rel="noopener">Chercher ≤ {fmt_prix(round(G["achat"]))} ↗</a></td>'
             f'<td class="achat">≤ {fmt_prix(round(G["achat"]))}</td><td>{fmt_prix(G["median"])}</td><td>{G["v24"]} / {len(G["vendus"])}</td></tr>')
     section_li = (
@@ -1003,6 +1118,7 @@ mods=[].slice.call(document.querySelectorAll('.mod')),aide=document.getElementBy
 function cle(e,a){{return a==='m'?(e.dataset.m||'').toLowerCase():e.dataset.r}}
 function appliquer(){{cartes.forEach(function(e){{e.hidden=(!!choix.r&&cle(e,'r')!==choix.r)||(!!choix.m&&cle(e,'m')!==choix.m)||(!!choix.g&&e.dataset.g!==choix.g)}});
 var n=0;mods.forEach(function(e){{e.hidden=choix.m?e.dataset.m!==choix.m:!e.hasAttribute('data-top');if(!e.hidden)n++;e.classList.toggle('on',e.dataset.g===choix.g)}});
+[].forEach.call(document.querySelectorAll('.profil'),function(e){{e.hidden=e.dataset.m!==choix.m}});
 if(aide)aide.textContent=choix.m?'de cette marque, du plus vendu au moins vendu':'les plus rapides, toutes marques : choisis une marque pour voir les siens';
 document.getElementById('modeles').hidden=!n}}
 mods.forEach(function(e){{e.onclick=function(){{choix.g=choix.g===e.dataset.g?'':e.dataset.g;appliquer();if(choix.g)g.scrollIntoView({{behavior:'smooth',block:'start'}})}}}});
