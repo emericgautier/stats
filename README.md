@@ -77,6 +77,10 @@ En haut de la page, les recherches sont classées sur les 7 derniers jours : ven
 
 Tout en haut : les 10 modèles au maximum qui ont au moins 3 ventes en moins de 24 h, avec leur achat max. Le lien « Chercher » ouvre Vinted sur ce modèle, en très bon état, jusqu'à l'achat max (le même filtre est à recopier dans Kops). Quand un modèle entre dans la liste, une notification arrive sur le sujet principal (pas la nuit). Dessous, la checklist pour vérifier une annonce en 30 secondes. Réglages : `LISTE_N`, `LISTE_MIN_RAPIDES`.
 
+### Quiz des modèles
+
+Bouton **Quiz** en haut de la page (`quiz.html`). Il est régénéré à chaque passage à partir de « Ma liste » puis des modèles les plus vendus (24 au maximum, au moins 3 ventes), avec les photos de leurs ventes : revente, achat max, « j'achète ? » et « quel modèle ? », plus une page de fiches. Les pièges (Parajumpers, K-Way, blazer Sandro seul, Paragoose hors Aria, Woolrich sans Arctic) se règlent dans `PIEGES` en tête de la partie quiz de `suivi.py`. Les modèles ratés reviennent plus souvent (mémoire du téléphone).
+
 ### Ça chauffe
 
 Tout en haut de la page : les 10 annonces encore en vente qui prennent le plus de likes par heure depuis leur mise en ligne (au moins 3 likes), avec photo, prix, lien et l'achat max de leur modèle quand il est connu. Les likes sont relevés à chaque passage, tant que l'annonce apparaît dans sa recherche.

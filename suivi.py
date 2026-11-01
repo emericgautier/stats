@@ -940,12 +940,13 @@ def passage():
     etat["dernier_passage"] = t0
     ecrire_etat(etat)
     ecrire_rapport(etat)
+    ecrire_quiz(etat)
     ecrire_export(etat)
 
 
 # ---------------------------------------------------------------- rapport
 
-CSS = """.haut{display:flex;align-items:center;justify-content:space-between;gap:12px}.tirer{position:fixed;top:0;left:50%;transform:translate(-50%,-48px);z-index:5;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:6px 12px;pointer-events:none}.haut button{font:inherit;font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:0;border-radius:99px;padding:8px 14px;cursor:pointer}
+CSS = """.haut{display:flex;align-items:center;justify-content:space-between;gap:12px}.tirer{position:fixed;top:0;left:50%;transform:translate(-50%,-48px);z-index:5;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:6px 12px;pointer-events:none}.boutons{display:flex;gap:8px}.boutons a{font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:8px 14px;text-decoration:none}.haut button{font:inherit;font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:0;border-radius:99px;padding:8px 14px;cursor:pointer}
 :root{--bg:#f6f6f3;--surface:#fff;--ink:#1d2120;--muted:#646b68;--line:#dfe1dc;--accent:#2f5d50;--accent-soft:#e3ece8;--hot:#9a3b12;color-scheme:light}
 @media (prefers-color-scheme:dark){:root{--bg:#141716;--surface:#1d2120;--ink:#ecefec;--muted:#9aa29e;--line:#2e3431;--accent:#8cc2ad;--accent-soft:#22312b;--hot:#e3a06a;color-scheme:dark}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,sans-serif;padding:max(28px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
@@ -1103,7 +1104,7 @@ def ecrire_rapport(etat):
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Ventes suivies</title>
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icone-180.png"><meta name="theme-color" content="#2f5d50">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ventes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>{CSS}</style></head><body><div class="tirer" id="tirer">↓ Tirer pour actualiser</div><div class="wrap">
-<header><div class="haut"><h1>Ventes suivies</h1><button type="button" id="actualiser">↻ Actualiser</button></div><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
+<header><div class="haut"><h1>Ventes suivies</h1><div class="boutons"><a href="quiz.html">Quiz</a><button type="button" id="actualiser">↻ Actualiser</button></div></div><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
 Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vente a été repérée : la vente réelle a eu lieu avant.</p></header>
 {section_li}
 {section_ch}
@@ -1144,6 +1145,130 @@ document.addEventListener('touchend',function(){{if(y0===null)return;y0=null;if(
 document.addEventListener('visibilitychange',function(){{if(!document.hidden&&Date.now()-t0>120000)recharger()}})}})();</script></body></html>"""
     os.makedirs(os.path.dirname(FICHIER_RAPPORT), exist_ok=True)
     with open(FICHIER_RAPPORT, "w", encoding="utf-8") as f:
+        f.write(page)
+
+
+# ---------------------------------------------------------------- quiz
+
+FICHIER_QUIZ = os.path.join(ICI, "docs", "quiz.html")
+QUIZ_N = 24                 # modèles au maximum dans le quiz (ceux de « Ma liste » d'abord)
+QUIZ_MIN_VENTES = 3         # ventes minimum pour qu'un modèle entre dans le quiz
+# Pièges : toujours passer (règles d'achat)
+PIEGES = [
+    {"marque": "Parajumpers", "nom": "Doudoune", "piege": "Abandonné : trop de contrefaçons."},
+    {"marque": "K-Way", "nom": "Coupe-vent", "piege": "Écarté : risque de contrefaçons."},
+    {"marque": "Sandro", "nom": "Blazer seul", "piege": "Un blazer seul en très bon état se revend 33 € : pas de marge possible."},
+    {"marque": "Paragoose", "nom": "Doudoune (hors Aria)", "piege": "Adulte très bon état : 30 € de médiane, achat ≤ 12 €. Ne vaut pas le temps."},
+    {"marque": "Woolrich", "nom": "Parka sans « Arctic »", "piege": "Sans le nom Arctic, médiane 50 € : achat ≤ 20 € seulement."},
+]
+
+QUIZ_HTML = r"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Quiz des modèles</title>
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icone-180.png"><meta name="theme-color" content="#2f5d50">
+<style>
+:root{--bg:#f6f6f3;--surface:#fff;--ink:#1d2120;--muted:#646b68;--line:#dfe1dc;--accent:#2f5d50;--accent-soft:#e3ece8;--ok:#1d7a55;--ok-bg:#dcefe5;--ko:#b8402a;--ko-bg:#f6e1da;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#141716;--surface:#1d2120;--ink:#ecefec;--muted:#9aa29e;--line:#2e3431;--accent:#8cc2ad;--accent-soft:#22312b;--ok:#5cc79a;--ok-bg:#16352a;--ko:#ee8a74;--ko-bg:#3d2019;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,sans-serif;padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}h1{font-size:24px;margin:0}
+header a{color:var(--accent);font-weight:600;text-decoration:none;font-size:14px}.score{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.modes{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}.modes button{flex:0 0 auto;font:600 14px system-ui;color:var(--accent);background:var(--accent-soft);border:0;border-radius:99px;padding:8px 13px;cursor:pointer}
+.modes button[aria-pressed=true]{background:var(--accent);color:var(--bg)}
+.carte{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.ph{aspect-ratio:4/5;max-height:55vh;width:100%;background:var(--accent-soft);display:grid;place-items:center;color:var(--muted);position:relative}.ph img{width:100%;height:100%;object-fit:cover}.carte>.ph{margin:0 auto}
+.ph .b{position:absolute;bottom:10px;left:10px;background:var(--ink);color:var(--bg);font-weight:700;border-radius:6px;padding:3px 9px;font-size:18px}
+.pad{padding:14px;display:flex;flex-direction:column;gap:10px}.q{font-size:19px;font-weight:700;margin:0}.m{color:var(--muted);font-size:14px}
+.choix{display:grid;grid-template-columns:1fr 1fr;gap:8px}.choix button{font:600 17px system-ui;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:13px 8px;cursor:pointer;font-variant-numeric:tabular-nums}
+.choix button.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}.choix button.ko{background:var(--ko-bg);border-color:var(--ko);color:var(--ko)}
+.fb{border-radius:10px;padding:10px 12px;font-size:15px}.fb.ok{background:var(--ok-bg)}.fb.ko{background:var(--ko-bg)}.fb b{display:block;margin-bottom:2px}
+.fiche{font-size:14px;display:grid;grid-template-columns:auto 1fr;gap:3px 12px}.fiche dt{color:var(--muted)}.fiche dd{margin:0;font-weight:600}
+.suite{font:700 16px system-ui;color:var(--bg);background:var(--accent);border:0;border-radius:10px;padding:13px;cursor:pointer}
+.go{color:var(--accent);font-weight:700;text-decoration:none}
+.liste{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.liste .ph{aspect-ratio:1}.liste .pad{padding:10px;gap:4px;font-size:14px}
+.vig{display:flex;gap:4px}.vig img{width:48px;height:62px;object-fit:cover;border-radius:4px;background:var(--accent-soft)}
+.piege{background:var(--ko-bg);border-radius:10px;padding:8px 10px;font-size:14px}.regle{color:var(--muted);font-size:13px;margin:0}
+</style></head><body><div class="wrap">
+<header><h1>Quiz des modèles</h1><a href="./">← Ventes</a></header>
+<div class="modes" id="modes"><button data-mode="mix" aria-pressed="true">Mélange</button><button data-mode="revente" aria-pressed="false">Revente ?</button><button data-mode="achat" aria-pressed="false">Achat max ?</button><button data-mode="buy" aria-pressed="false">J'achète ?</button><button data-mode="qui" aria-pressed="false">Quel modèle ?</button><button data-mode="fiches" aria-pressed="false">Fiches</button></div>
+<div class="score" id="score"></div>
+<main id="app"></main>
+<p class="regle">Modèles et prix tirés automatiquement des ventes suivies (mis à jour le __MAJ__). Très bon état seulement, achat ≤ 40 % du médian vendu avec au moins 30 € de marge. Les modèles que tu rates reviennent plus souvent.</p>
+</div>
+<script>
+var M=__DATA__, P=__PIEGES__;
+var app=document.getElementById('app'),mode='mix',score={ok:0,n:0},dernier=null,mem={};
+try{mem=JSON.parse(localStorage.getItem('quiz-auto')||'{}')}catch(e){}
+function sauver(){try{localStorage.setItem('quiz-auto',JSON.stringify(mem))}catch(e){}}
+function st(id){return mem[id]||(mem[id]={ok:0,ko:0})}
+function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+function esc(t){var d=document.createElement('div');d.textContent=t==null?'':String(t);return d.innerHTML}
+function eur(v){return Math.round(v)+' €'}
+function tirer(){var tot=0,w=M.map(function(m){var s=st(m.id),x=Math.max(.3,1+2*s.ko-.5*s.ok);if(m.id===dernier)x=0;tot+=x;return x});
+ var r=Math.random()*tot;for(var i=0;i<M.length;i++){r-=w[i];if(r<=0)return M[i]}return M[0]}
+function leurres(v){var out=[v],f=[.55,.7,.8,1.25,1.45,1.7];f.sort(function(){return Math.random()-.5});
+ for(var i=0;i<f.length&&out.length<4;i++){var x=Math.max(5,Math.round(v*f[i]/5)*5);if(out.every(function(o){return Math.abs(o-x)>=Math.max(5,v*.12)}))out.push(x)}
+ return out.sort(function(a,b){return a-b})}
+function photo(m,prix){var p=m.photos.length?rnd(m.photos):null;
+ return '<div class="ph">'+(p?'<img alt="" referrerpolicy="no-referrer" src="'+esc(p[0])+'" onerror="this.remove()">':'Pas de photo')+(prix?'<span class="b">'+esc(prix)+'</span>':'')+'</div>'}
+function fiche(m){return '<dl class="fiche"><dt>Revente</dt><dd>'+eur(m.rev)+' (médian de '+m.n+' ventes)</dd><dt>Achat max</dt><dd>≤ '+eur(m.max)+'</dd>'+
+ '<dt>Vendues &lt; 24 h</dt><dd>'+m.v24+' / '+m.n+'</dd>'+(m.vite?'<dt>Part vite</dt><dd>'+esc(m.vite)+'</dd>':'')+'</dl>'+
+ '<a class="go" href="'+esc(m.lien)+'" target="_blank" rel="noopener">Chercher ≤ '+eur(m.max)+' sur Vinted ↗</a>'}
+function points(){document.getElementById('score').textContent=score.n?score.ok+' / '+score.n+' bonnes':''}
+function poser(m,html,choix,bon,expl,cle){
+ app.innerHTML='<div class="carte">'+html+'<div class="pad"><div class="choix">'+choix.map(function(c,i){return '<button data-i="'+i+'">'+esc(c)+'</button>'}).join('')+'</div><div id="apres"></div></div></div>';
+ [].forEach.call(app.querySelectorAll('.choix button'),function(b){b.onclick=function(){
+  var i=+b.dataset.i,juste=i===bon;[].forEach.call(app.querySelectorAll('.choix button'),function(x,j){x.disabled=true;if(j===bon)x.classList.add('ok');else if(j===i)x.classList.add('ko')});
+  score.n++;if(juste)score.ok++;points();if(cle){var s=st(cle);juste?s.ok++:s.ko++;sauver()}
+  document.getElementById('apres').innerHTML='<div class="fb '+(juste?'ok':'ko')+'"><b>'+(juste?'Bien vu':'Raté')+'</b>'+expl+'</div>'+(m?fiche(m):'')+'<button class="suite" id="suite">Suivante →</button>';
+  document.getElementById('suite').onclick=question;document.getElementById('suite').focus()}})}
+function titre(m,q){return '<div class="pad" style="padding-bottom:0"><span class="m">'+esc(m.marque)+'</span><p class="q">'+esc(m.nom)+'</p><span class="m">'+q+'</span></div>'}
+function qPrix(m,cle){var v=cle==='rev'?m.rev:m.max,c=leurres(v);
+ poser(m,photo(m)+titre(m,cle==='rev'?'Il se revend combien ?':'Tu l’achètes au maximum à combien ?'),c.map(eur),c.indexOf(v),
+  cle==='rev'?'Médian vendu : '+eur(m.rev)+'.':'Achat max : '+eur(m.max)+' (40 % de '+eur(m.rev)+', au moins 30 € de marge).',m.id)}
+function qQui(m){var autres=M.filter(function(x){return x.id!==m.id&&x.nom!==m.nom});
+ var meme=autres.filter(function(x){return x.marque===m.marque}),noms=[m.nom];
+ meme.concat(autres.sort(function(){return Math.random()-.5})).forEach(function(x){if(noms.length<4&&noms.indexOf(x.nom)<0)noms.push(x.nom)});
+ noms.sort(function(){return Math.random()-.5});
+ poser(m,photo(m)+'<div class="pad" style="padding-bottom:0"><span class="m">'+esc(m.marque)+'</span><p class="q">Quel modèle ?</p></div>',noms,noms.indexOf(m.nom),'C’est '+esc(m.nom)+'.',m.id)}
+function qBuy(m){
+ if(P.length&&Math.random()<.2){var p=rnd(P),prix=rnd([15,20,25,30,35]);
+  app.innerHTML='';poser(null,'<div class="pad" style="padding-bottom:0"><span class="m">'+esc(p.marque)+'</span><p class="q">'+esc(p.nom)+' à '+prix+' €</p><span class="m">Très bon état. Tu achètes ?</span></div>',
+   ['J’achète','Je passe'],1,'<div class="piege">'+esc(p.piege)+'</div>','piege-'+p.marque);return}
+ var oui=Math.random()<.5,prix=Math.max(5,Math.round(oui?m.max*(.55+.45*Math.random()):m.max*(1.2+.7*Math.random())));
+ poser(m,photo(m,prix+' €')+titre(m,'Très bon état, '+prix+' €. Tu achètes ?'),['J’achète','Je passe'],oui?0:1,
+  oui?prix+' € ≤ achat max '+eur(m.max)+' : tu achètes.':prix+' € > achat max '+eur(m.max)+' : tu passes.',m.id)}
+function fiches(){app.innerHTML='<div class="liste">'+M.map(function(m){return '<div class="carte">'+photo(m)+'<div class="pad"><span class="m">'+esc(m.marque)+'</span><b>'+esc(m.nom)+'</b>'+
+ '<span>Revente '+eur(m.rev)+' · <b>≤ '+eur(m.max)+'</b></span><span class="m">'+m.v24+' / '+m.n+' en &lt; 24 h'+(m.vite?' · '+esc(m.vite):'')+'</span><a class="go" href="'+esc(m.lien)+'" target="_blank" rel="noopener">Chercher ↗</a></div></div>'}).join('')+'</div>'+
+ (P.length?'<h2 style="font-size:18px">Pièges : toujours passer</h2>'+P.map(function(p){return '<div class="piege"><b>'+esc(p.marque)+' · '+esc(p.nom)+'</b><br>'+esc(p.piege)+'</div>'}).join('<div style="height:6px"></div>'):'')}
+function question(){if(!M.length){app.innerHTML='<p class="m">Pas encore assez de ventes pour le quiz.</p>';return}
+ if(mode==='fiches')return fiches();var m=tirer();dernier=m.id;
+ var t=mode==='mix'?rnd(['revente','achat','buy','buy','qui']):mode;
+ if(t==='revente')qPrix(m,'rev');else if(t==='achat')qPrix(m,'max');else if(t==='qui'&&M.length>=2)qQui(m);else qBuy(m);window.scrollTo(0,0)}
+[].forEach.call(document.querySelectorAll('#modes button'),function(b){b.onclick=function(){mode=b.dataset.mode;
+ [].forEach.call(document.querySelectorAll('#modes button'),function(x){x.setAttribute('aria-pressed',x===b)});question()}});
+question();
+</script></body></html>"""
+
+
+def ecrire_quiz(etat):
+    """Quiz des modèles, régénéré à chaque passage depuis « Ma liste » et les cartes Modèles, avec les photos des ventes."""
+    t0 = etat.get("dernier_passage") or maintenant()
+    groupes, _ = modeles(etat, t0)
+    liste = ma_liste(groupes)
+    autres = sorted([G for G in groupes.values() if G["mots"] and G["achat"] is not None and len(G["vendus"]) >= QUIZ_MIN_VENTES and G not in liste],
+                    key=lambda G: (G["v24"], len(G["vendus"])), reverse=True)
+    data = []
+    for G in [G for G in liste + autres if G["nom"] or G["coupe"]][:QUIZ_N]:  # sans les groupes « (autres) », trop vagues
+        rapides = sorted(G["vendus"], key=lambda a: heures(a.get("publie"), a["vendu_vu"]) or 1e9)
+        data.append({
+            "id": G["cle"], "marque": G["marque"], "nom": G["libelle"], "rev": round(G["median"]), "max": round(G["achat"]),
+            "v24": G["v24"], "n": len(G["vendus"]), "vite": " · ".join(G["part_vite"]), "lien": lien_recherche(G),
+            "photos": [[a["photo"], fmt_prix(a["prix"])] for a in rapides if a["photo"]][:4],
+        })
+    maj = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
+    js = lambda x: json.dumps(x, ensure_ascii=False).replace("</", "<\\/")
+    page = QUIZ_HTML.replace("__DATA__", js(data)).replace("__PIEGES__", js(PIEGES)).replace("__MAJ__", maj)
+    with open(FICHIER_QUIZ, "w", encoding="utf-8") as f:
         f.write(page)
 
 
