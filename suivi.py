@@ -676,6 +676,14 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .repli summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}.repli summary::-webkit-details-marker{display:none}
 .repli summary h2{margin:0}.repli summary::after{content:"▾ afficher";font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:3px 10px}
 .repli[open] summary::after{content:"▴ masquer"}.repli[open] summary{margin-bottom:8px}
+.go{font:600 15px system-ui;color:#fff;background:var(--accent);border:0;border-radius:8px;padding:9px 14px;cursor:pointer}
+@media (prefers-color-scheme:dark){.go{color:#141716}}
+.dia{position:fixed;inset:0;z-index:20;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom));touch-action:pan-y}
+.dia img{max-width:100%;max-height:calc(100% - 180px);object-fit:contain;border-radius:8px}
+.dia .dt{font-size:13px;color:#aaa}.dia .dp{font-size:22px;font-weight:700}.dia .dp em{font-style:normal;font-size:14px;font-weight:600;background:#2f5d50;border-radius:99px;padding:2px 9px;margin-left:8px}
+.dia .dn{font-size:14px;text-align:center;max-width:520px}.dia a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:9px 18px}
+.dia .x{position:absolute;top:max(10px,env(safe-area-inset-top));right:12px;font:600 30px/1 system-ui;color:#fff;background:none;border:0;padding:8px;cursor:pointer}
+.dia .fl{position:absolute;top:50%;transform:translateY(-50%);font:600 40px/1 system-ui;color:#fff;background:rgba(255,255,255,.12);border:0;border-radius:99px;width:48px;height:48px;cursor:pointer}.dia .pv{left:8px}.dia .nx{right:8px}
 @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}}"""
 
 
@@ -704,19 +712,20 @@ def ecrire_rapport(etat):
         return f'data-u="{html.escape(a["url"])}" data-t="{html.escape(a["titre"])} · {fmt_prix(a["prix"])}"'
 
     vendus = sorted([a for a in ann if a["statut"] == "vendu"], key=lambda a: a["vendu_vu"], reverse=True)
+    cl = classement(etat, t0)
+    achat_max = {c["nom"]: round(c["achat"]) for c in cl}
     cartes = []
     for a in vendus:
         h = heures(a.get("publie"), a["vendu_vu"])
         img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" {zoom(a)} '
                f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
         cartes.append(
-            f'<article class="card" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}"><div class="ph">{img}<span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
+            f'<article class="card" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}" data-h="{html.escape(fmt_h(h))}"{f' data-x="achat max ≤ {fmt_prix(achat_max[a["recherche"]])}"' if a["recherche"] in achat_max else ""}><div class="ph">{img}<span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
             f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="m">{html.escape(a["recherche"])}</span>'
             f'<span class="t">{html.escape(a["titre"])}</span><span class="m">{html.escape(" · ".join(x for x in (a["marque"], a["taille"], a["etat_article"]) if x))}'
             f'{" · ♥ " + str(a["likes"]) if a.get("likes") else ""}</span>'
             f'<a href="{html.escape(a["url"])}" target="_blank" rel="noopener">Voir l’annonce ↗</a></div></article>')
 
-    cl = classement(etat, t0)
     def vignette(a):
         img = f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" {zoom(a)}>' if a["photo"] else ""
         return f'<a href="{html.escape(a["url"])}" target="_blank" rel="noopener" title="{html.escape(a["titre"])} · {fmt_prix(a["prix"])}">{img}</a>'
@@ -742,7 +751,8 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <section><details class="repli"><summary><h2>Par recherche</h2></summary><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></details></section>
-<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f" aria-label="Marque ou recherche" hidden></select></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
+<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f" aria-label="Marque ou recherche" hidden></select><button type="button" class="go" id="go"{"" if cartes else " hidden"}>▶ Diaporama</button></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
+<div class="dia" id="dia" hidden><button type="button" class="x" id="dx" aria-label="Fermer">×</button><button type="button" class="fl pv" id="dg" aria-label="Précédente">‹</button><button type="button" class="fl nx" id="dd" aria-label="Suivante">›</button><div class="dt" id="dt"></div><img id="di" alt="" referrerpolicy="no-referrer"><div class="dp" id="dp"></div><div class="dn" id="dn"></div><a id="da" target="_blank" rel="noopener">Voir l’annonce ↗</a></div>
 <div class="vue" id="vue" hidden><button type="button" aria-label="Fermer">×</button><img alt="" referrerpolicy="no-referrer"><p></p><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div>
 <script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),c=document.getElementById('f'),choix=[],par={{}};
 // Un seul menu : toutes les ventes, puis une ligne par marque
@@ -759,11 +769,25 @@ document.addEventListener('click',function(e){{var x=e.target.closest('img[data-
 im.src=x.currentSrc||x.src;t.textContent=x.dataset.t;l.href=x.dataset.u;v.hidden=false}});
 v.addEventListener('click',function(e){{if(e.target===v||e.target.tagName==='BUTTON')fermer()}});
 document.addEventListener('keydown',function(e){{if(e.key==='Escape')fermer()}})}})();
+(function(){{var d=document.getElementById('dia'),L=[],k=0,$=function(i){{return document.getElementById(i)}};
+// Diaporama : les ventes affichées (selon le menu), dans l'ordre de la page
+function show(){{var o=L[k];$('di').src=o.i;$('dt').textContent=(k+1)+' / '+L.length+' · '+o.r;$('dp').textContent=o.p;
+if(o.x){{var e=document.createElement('em');e.textContent=o.x;$('dp').append(e)}}$('dn').textContent=o.n+' · vendu en ≤ '+o.h;$('da').href=o.u;
+if(L.length>1){{var n=new Image();n.referrerPolicy='no-referrer';n.src=L[(k+1)%L.length].i}}}}
+function va(s){{if(!L.length)return;k=(k+s+L.length)%L.length;show()}}
+function fermer(){{d.hidden=true;document.body.style.overflow=''}}
+$('go').onclick=function(){{L=[];document.querySelectorAll('#grid .card').forEach(function(c){{if(c.hidden)return;var im=c.querySelector('.ph img');if(!im)return;
+L.push({{i:im.currentSrc||im.src,u:c.querySelector('.body a').href,p:c.querySelector('.b.p').textContent,n:c.querySelector('.body .t').textContent,r:c.dataset.r,h:c.dataset.h,x:c.dataset.x||''}})}});
+if(!L.length)return;k=0;show();d.hidden=false;document.body.style.overflow='hidden'}};
+$('dx').onclick=fermer;$('dg').onclick=function(){{va(-1)}};$('dd').onclick=function(){{va(1)}};
+document.addEventListener('keydown',function(e){{if(d.hidden)return;if(e.key==='ArrowRight'||e.key===' ')va(1);if(e.key==='ArrowLeft')va(-1);if(e.key==='Escape')fermer()}});
+var x0=null;d.addEventListener('touchstart',function(e){{x0=e.touches[0].clientX}},{{passive:true}});
+d.addEventListener('touchend',function(e){{if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>40)va(dx<0?1:-1)}})}})();
 (function(){{var t0=Date.now();function recharger(){{location.replace(location.pathname+'?t='+Date.now())}}
 document.getElementById('actualiser').onclick=recharger;
 var ind=document.getElementById('tirer'),y0=null,dy=0,SEUIL=90;
 function poser(d){{ind.style.transform='translate(-50%,'+(Math.min(d,SEUIL+20)-48)+'px)';ind.textContent=d>=SEUIL?'↻ Relâcher pour actualiser':'↓ Tirer pour actualiser'}}
-document.addEventListener('touchstart',function(e){{y0=(window.scrollY<=0&&document.getElementById('vue').hidden)?e.touches[0].clientY:null;dy=0}},{{passive:true}});
+document.addEventListener('touchstart',function(e){{y0=(window.scrollY<=0&&document.getElementById('vue').hidden&&document.getElementById('dia').hidden)?e.touches[0].clientY:null;dy=0}},{{passive:true}});
 document.addEventListener('touchmove',function(e){{if(y0===null)return;dy=e.touches[0].clientY-y0;if(dy>0)poser(dy)}},{{passive:true}});
 document.addEventListener('touchend',function(){{if(y0===null)return;y0=null;if(dy>=SEUIL){{ind.textContent='↻ Actualisation…';recharger()}}else poser(0)}});
 document.addEventListener('visibilitychange',function(){{if(!document.hidden&&Date.now()-t0>120000)recharger()}})}})();</script></body></html>"""
