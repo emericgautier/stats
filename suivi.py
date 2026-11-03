@@ -298,8 +298,17 @@ def annonce_depuis_api(it, nom_recherche):
     }
 
 
-def statut_page(url):
-    """Ouvre la page publique d'une annonce : vendu, réservé, dispo ou supprimé."""
+def couleur_page(soup):
+    """Couleur indiquée par le vendeur (ex. « Marron », « Noir, Blanc »)."""
+    el = soup.select_one('[data-testid="item-attributes-color"]')
+    if not el:
+        return ""
+    return re.sub(r"^\s*Couleurs?\s*:?\s*", "", el.get_text(" ", strip=True), flags=re.I).strip()
+
+
+def statut_page(url, infos=None):
+    """Ouvre la page publique d'une annonce : vendu, réservé, dispo ou supprimé.
+    Si `infos` est un dict, y ajoute la couleur lue sur la page."""
     r = session.get(url, headers={"Accept": "text/html", "Referer": BASE + "/"}, timeout=25, allow_redirects=True)
     if r.status_code in (404, 410):
         return "supprime"
@@ -309,6 +318,8 @@ def statut_page(url):
     if r.status_code != 200:
         return None
     soup = BeautifulSoup(r.text, "html.parser")
+    if infos is not None:
+        infos["couleur"] = couleur_page(soup)
     if soup.select_one('.web_ui__Cell__success, [class*="Cell__success"], [class*="cell--success"], [class*="item-status--sold"]'):
         return "vendu"
     tag = soup.select_one('[data-testid="item-status--content"]')
@@ -611,7 +622,10 @@ def passage():
     ventes = []
     for a in a_verifier:
         try:
-            s = statut_page(a["url"])
+            infos = {}
+            s = statut_page(a["url"], infos)
+            if infos.get("couleur"):
+                a["couleur"] = infos["couleur"]
         except requests.RequestException as e:
             log(f"   {a['id']} : {e}")
             s = None
@@ -733,9 +747,9 @@ def ecrire_rapport(etat):
         img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" {zoom(a)} '
                f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
         cartes.append(
-            f'<article class="card" data-id="{html.escape(a["id"])}" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}" data-h="{html.escape(fmt_h(h))}" data-s="{html.escape(a["taille"] or "")}"{f' data-x="achat max ≤ {fmt_prix(achat_max[a["recherche"]])}"' if a["recherche"] in achat_max else ""}><div class="ph">{img}<button type="button" class="cache" aria-label="Masquer cette vente" title="Masquer cette vente">×</button><span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
+            f'<article class="card" data-id="{html.escape(a["id"])}" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}" data-h="{html.escape(fmt_h(h))}" data-s="{html.escape(a["taille"] or "")}" data-c="{html.escape(a.get("couleur") or "")}"{f' data-x="achat max ≤ {fmt_prix(achat_max[a["recherche"]])}"' if a["recherche"] in achat_max else ""}><div class="ph">{img}<button type="button" class="cache" aria-label="Masquer cette vente" title="Masquer cette vente">×</button><span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
             f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="m">{html.escape(a["recherche"])}</span>'
-            f'<span class="t">{html.escape(a["titre"])}</span><span class="m">{html.escape(" · ".join(x for x in (a["marque"], a["taille"], a["etat_article"]) if x))}'
+            f'<span class="t">{html.escape(a["titre"])}</span><span class="m">{html.escape(" · ".join(x for x in (a["marque"], a["taille"], a.get("couleur"), a["etat_article"]) if x))}'
             f'{" · ♥ " + str(a["likes"]) if a.get("likes") else ""}</span>'
             f'<a href="{html.escape(a["url"])}" target="_blank" rel="noopener">Voir l’annonce ↗</a></div></article>')
 
@@ -753,6 +767,27 @@ def ecrire_rapport(etat):
         f"""{''.join(lignes_cl) or f'<tr><td colspan="7">Pas encore assez de ventes (au moins {CLASSEMENT_MIN_VENTES} par recherche sur {CLASSEMENT_J} jours).</td></tr>'}</tbody></table></div>"""
         f"""<p class="sub">Sur les {CLASSEMENT_J} derniers jours. Achat max : {ACHAT_PART * 100:.0f} % du prix médian vendu, avec au moins {ACHAT_MARGE} € de marge. Les vignettes sont les ventes les plus rapides.</p></details></section>""")
 
+    # Couleurs qui partent vite, par marque (la couleur est lue sur la page de l'annonce vendue)
+    pc = {}
+    for a in vendus:
+        if a.get("couleur") and a.get("marque"):
+            pc.setdefault(a["marque"].strip(), {}).setdefault(a["couleur"], []).append(a)
+    lignes_c = []
+    for m in sorted(pc, key=lambda m: m.lower()):
+        cs = []
+        for coul, lst in pc[m].items():
+            if len(lst) < 2:
+                continue
+            v24 = sum(1 for a in lst if (heures(a.get("publie"), a["vendu_vu"]) or 1e9) <= 24)
+            px = [a["prix"] for a in lst if a["prix"] is not None]
+            cs.append((v24, len(lst), coul, statistics.median(px) if px else None))
+        for v24, n, coul, med in sorted(cs, reverse=True)[:4]:
+            lignes_c.append(f"<tr><td>{html.escape(m)}</td><td>{html.escape(coul)}</td><td>{v24} / {n}</td><td>{fmt_prix(med) if med is not None else '–'}</td></tr>")
+    section_couleurs = (
+        """<section><details class="repli"><summary><h2>Couleurs</h2></summary><div class="tbl"><table><thead><tr><th>Marque</th><th>Couleur</th><th>Vendues &lt; 24 h</th><th>Prix médian</th></tr></thead><tbody>"""
+        f"""{''.join(lignes_c) or '<tr><td colspan="4">Pas encore assez de ventes avec leur couleur (au moins 2 par couleur).</td></tr>'}</tbody></table></div>"""
+        """<p class="sub">Jusqu’à 4 couleurs par marque, des plus vendues en moins de 24 h aux moins vendues. La couleur est celle indiquée par le vendeur.</p></details></section>""")
+
     maj = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
     page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Ventes suivies</title>
@@ -761,6 +796,7 @@ def ecrire_rapport(etat):
 <header><div class="haut"><h1>Ventes suivies</h1><div class="boutons"><a href="analyses/">Analyses</a><button type="button" id="actualiser">↻ Actualiser</button></div></div><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
 Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vente a été repérée : la vente réelle a eu lieu avant.</p></header>
 {section_cl}
+{section_couleurs}
 <section><details class="repli"><summary><h2>Par recherche</h2></summary><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></details></section>
@@ -788,7 +824,7 @@ b.onclick=function(){{m={{}};garder();maj()}};maj()}})();
 // Fenêtre photo : flèches ou balayage pour passer aux ventes voisines (celles affichées selon le menu)
 function show(){{var x=L[k],c=x.closest('.card');im.src=x.currentSrc||x.src;l.href=x.dataset.u;t.textContent='';
 if(c){{var d=c.querySelector('.b.d');bd.textContent=d.textContent;bd.className=d.className;bd.hidden=false;
-var b=document.createElement('b');b.textContent=c.querySelector('.b.p').textContent;t.append(b,' · '+c.querySelector('.body .t').textContent+(c.dataset.s?' · taille '+c.dataset.s:''));
+var b=document.createElement('b');b.textContent=c.querySelector('.b.p').textContent;t.append(b,' · '+c.querySelector('.body .t').textContent+(c.dataset.s?' · taille '+c.dataset.s:'')+(c.dataset.c?' · '+c.dataset.c:''));
 if(c.dataset.x){{var e=document.createElement('em');e.textContent=c.dataset.x;t.append(e)}}if(L.length>1)t.append(' · '+(k+1)+' / '+L.length)}}
 else{{bd.hidden=true;t.textContent=x.dataset.t}}
 pv.hidden=nx.hidden=L.length<2;if(L.length>1){{var n=new Image();n.referrerPolicy='no-referrer';n.src=L[(k+1)%L.length].src}}}}
@@ -830,7 +866,7 @@ def ecrire_export(etat):
     for f in os.listdir(DOSSIER_EXPORT):
         os.remove(os.path.join(DOSSIER_EXPORT, f))
     paris = ZoneInfo("Europe/Paris")
-    sommaire = ["Ventes par recherche (délai | prix | taille | titre | vendue le | likes | annonce | photo)", ""]
+    sommaire = ["Ventes par recherche (délai | prix | taille | couleur | titre | vendue le | likes | annonce | photo)", ""]
     for nom, lst in sorted(par.items()):
         pages = [lst[k:k + EXPORT_LIGNES] for k in range(0, len(lst), EXPORT_LIGNES)]
         fichiers = []
@@ -839,7 +875,7 @@ def ecrire_export(etat):
             lignes = [f"{nom} · page {n}/{len(pages)} · {len(lst)} ventes"]
             for a in morceau:
                 quand = datetime.fromtimestamp(a["vendu_vu"], paris).strftime("%d/%m %H:%M")
-                lignes.append(" | ".join([fmt_h(heures(a.get("publie"), a["vendu_vu"])), fmt_prix(a["prix"]), a["taille"] or "?",
+                lignes.append(" | ".join([fmt_h(heures(a.get("publie"), a["vendu_vu"])), fmt_prix(a["prix"]), a["taille"] or "?", a.get("couleur") or "?",
                                           " ".join(a["titre"].split()), quand, str(a.get("likes") or 0), a["url"].split("?")[0], a["photo"] or "-"]))
             with open(os.path.join(DOSSIER_EXPORT, fichier), "w", encoding="utf-8") as f:
                 f.write("\n".join(lignes) + "\n")
