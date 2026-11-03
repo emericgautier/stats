@@ -113,6 +113,18 @@ def garder_marque(items, url):
     return [it for it in items if (it.get("brand_title") or "").strip().lower() == m]
 
 
+ENFANT_TITRE = re.compile(
+    r"\b(enfants?|b[ée]b[ée]s?|fille|fillette|gar[çc]on(net)?s?|kids?|junior|juniors|baby|boys?|girls?|kinder|m[äa]dchen|jungen|ni[ñn][oa]s?|bambin[oa]|youth"
+    r"|\d{1,2}\s*(ans|mois|months?|years?|jahre|anni|años))\b", re.I)
+ENFANT_TAILLE = re.compile(r"\d{1,2}\s*(ans|mois|months?|years?)|\d{2,3}\s*cm|(5[0-9]|[6-9][0-9]|1[0-7][0-9])", re.I)  # 50 à 179 = taille en cm
+
+
+def est_enfant(a):
+    """Article enfant (titre ou taille) : jamais suivi ni affiché."""
+    return bool(ENFANT_TITRE.search(a.get("titre") or a.get("title") or "")
+                or ENFANT_TAILLE.fullmatch((a.get("taille") or a.get("size_title") or "").split("/")[0].strip()))
+
+
 def ts_photo(url):
     """Les photos sont souvent nommées d'après leur heure d'envoi (horodatage Unix)."""
     m = re.search(r"/(\d{10})\.(?:jpe?g|webp|png)", url or "")
@@ -539,6 +551,9 @@ def passage():
         log("Aucune recherche : ajoute le secret RECHERCHES.")
         return
     restaurer_ventes(etat)
+    # Articles enfant : retirés partout (page, statistiques, notifications)
+    for i in [i for i, a in ann.items() if est_enfant(a)]:
+        del ann[i]
     # Annonces des recherches retirées : plus de vérification ni de notification, seules les ventes restent sur la page
     retirees = lire_retirees()
     for i in [i for i, a in ann.items() if a["recherche"] in retirees and a["statut"] != "vendu"]:
@@ -553,6 +568,8 @@ def passage():
             for page in range(1, PAGES_PAR_RECHERCHE + 1):
                 items = chercher(url, page)
                 for it in garder_marque(items, url):
+                    if est_enfant(it):
+                        continue
                     i = str(it["id"])
                     presents.add(i)
                     if i in ann:
@@ -667,7 +684,9 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute
 .body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:3px;flex:1;font-size:13px}.t{font-weight:600}.m{color:var(--muted);font-size:12px}
 .body a{margin-top:auto;color:var(--accent);font-weight:600;text-decoration:none}
 .filtres{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.filtres select{flex:1 1 220px;min-width:0;font:600 16px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
-[hidden]{display:none!important}
+[hidden],.card.masq{display:none!important}
+.cache{position:absolute;top:8px;left:8px;width:28px;height:28px;border-radius:99px;border:0;background:rgba(0,0,0,.55);color:#fff;font:600 18px/28px system-ui;padding:0;cursor:pointer}
+.remontrer{font:600 14px system-ui;color:var(--accent);background:var(--accent-soft);border:0;border-radius:8px;padding:9px 12px;cursor:pointer}
 img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
 .vph{position:relative;display:flex;max-width:100%;max-height:calc(100% - 130px)}.vph img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
 .vph .d{font-size:14px}.vue .fl{position:absolute;top:50%;transform:translateY(-50%);font:600 40px/1 system-ui;color:#fff;background:rgba(255,255,255,.14);border:0;border-radius:99px;width:48px;height:48px;padding:0;cursor:pointer}.vue .fl.pv{left:8px;right:auto}.vue .fl.nx{right:8px}
@@ -714,7 +733,7 @@ def ecrire_rapport(etat):
         img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" {zoom(a)} '
                f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
         cartes.append(
-            f'<article class="card" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}" data-h="{html.escape(fmt_h(h))}" data-s="{html.escape(a["taille"] or "")}"{f' data-x="achat max ≤ {fmt_prix(achat_max[a["recherche"]])}"' if a["recherche"] in achat_max else ""}><div class="ph">{img}<span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
+            f'<article class="card" data-id="{html.escape(a["id"])}" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}" data-h="{html.escape(fmt_h(h))}" data-s="{html.escape(a["taille"] or "")}"{f' data-x="achat max ≤ {fmt_prix(achat_max[a["recherche"]])}"' if a["recherche"] in achat_max else ""}><div class="ph">{img}<button type="button" class="cache" aria-label="Masquer cette vente" title="Masquer cette vente">×</button><span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
             f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="m">{html.escape(a["recherche"])}</span>'
             f'<span class="t">{html.escape(a["titre"])}</span><span class="m">{html.escape(" · ".join(x for x in (a["marque"], a["taille"], a["etat_article"]) if x))}'
             f'{" · ♥ " + str(a["likes"]) if a.get("likes") else ""}</span>'
@@ -745,7 +764,7 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <section><details class="repli"><summary><h2>Par recherche</h2></summary><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></details></section>
-<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f" aria-label="Marque ou recherche" hidden></select></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
+<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f" aria-label="Marque ou recherche" hidden></select><button type="button" class="remontrer" id="remontrer" hidden></button></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
 <div class="vue" id="vue" hidden><button type="button" class="x" aria-label="Fermer">×</button><button type="button" class="fl pv" aria-label="Précédente">‹</button><button type="button" class="fl nx" aria-label="Suivante">›</button><div class="vph"><img alt="" referrerpolicy="no-referrer"><span class="b d"></span></div><p></p><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div>
 <script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),c=document.getElementById('f'),choix=[],par={{}};
 // Un seul menu : toutes les ventes, puis une ligne par marque
@@ -756,6 +775,15 @@ var ks=Object.keys(par).sort(function(x,y){{return par[x].nom.localeCompare(par[
 ks.forEach(function(k){{var b=par[k];ajouter(b.nom+' ('+b.n+')',{{m:k}})}});
 if(ks.length>1||choix.length>2){{c.hidden=false;c.onchange=function(){{var f=choix[+c.value];
 cartes.forEach(function(e){{e.hidden=!!f&&((e.dataset.m||'').trim().toLowerCase()!==f.m||(!!f.r&&e.dataset.r!==f.r))}})}}}}}})();
+(function(){{var K='ventes_masquees',m={{}},b=document.getElementById('remontrer');
+// Croix sur une carte : la vente est masquée sur cet appareil
+try{{m=JSON.parse(localStorage.getItem(K)||'{{}}')||{{}}}}catch(e){{}}
+function maj(){{var n=0;document.querySelectorAll('#grid .card').forEach(function(c){{var x=!!m[c.dataset.id];c.classList.toggle('masq',x);if(x)n++}});
+b.hidden=!n;b.textContent='Réafficher les masquées ('+n+')'}}
+function garder(){{try{{localStorage.setItem(K,JSON.stringify(m))}}catch(e){{}}}}
+document.getElementById('grid').addEventListener('click',function(e){{var x=e.target.closest('.cache');if(!x)return;e.preventDefault();e.stopPropagation();
+m[x.closest('.card').dataset.id]=Date.now();garder();maj()}});
+b.onclick=function(){{m={{}};garder();maj()}};maj()}})();
 (function(){{var v=document.getElementById('vue'),im=v.querySelector('img'),bd=v.querySelector('.vph .b'),t=v.querySelector('p'),l=v.querySelector('a'),pv=v.querySelector('.pv'),nx=v.querySelector('.nx'),L=[],k=0;
 // Fenêtre photo : flèches ou balayage pour passer aux ventes voisines (celles affichées selon le menu)
 function show(){{var x=L[k],c=x.closest('.card');im.src=x.currentSrc||x.src;l.href=x.dataset.u;t.textContent='';
@@ -767,7 +795,7 @@ pv.hidden=nx.hidden=L.length<2;if(L.length>1){{var n=new Image();n.referrerPolic
 function va(s){{if(L.length<2)return;k=(k+s+L.length)%L.length;show()}}
 function fermer(){{v.hidden=true;im.removeAttribute('src');document.body.style.overflow=''}}
 document.addEventListener('click',function(e){{var x=e.target.closest('img[data-u]');if(!x||v.contains(x))return;e.preventDefault();
-L=x.closest('#grid .card')?[].slice.call(document.querySelectorAll('#grid .card:not([hidden]) .ph img[data-u]')):[x];k=Math.max(0,L.indexOf(x));
+L=x.closest('#grid .card')?[].slice.call(document.querySelectorAll('#grid .card:not([hidden]):not(.masq) .ph img[data-u]')):[x];k=Math.max(0,L.indexOf(x));
 show();v.hidden=false;document.body.style.overflow='hidden'}});
 pv.onclick=function(){{va(-1)}};nx.onclick=function(){{va(1)}};
 v.addEventListener('click',function(e){{if(e.target===v||e.target.classList.contains('x'))fermer()}});
