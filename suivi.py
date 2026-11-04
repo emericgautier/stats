@@ -1243,7 +1243,7 @@ def ecrire_page_base(garde, t0):
 <style>__CSS__</style></head><body><div class="wrap">
 <header><div class="haut"><h1>Meilleures ventes</h1><div class="boutons"><a href="../">← Ventes</a><a href="meilleures-ventes.csv" download>Tableur</a></div></div>
 <p class="sub">Gardées pour de bon : chaque semaine, les __N__ ventes les plus rapides de chaque recherche, parties en __H__ h au plus et au prix médian de leur recherche ou plus. Mis à jour le __MAJ__.</p></header>
-<section><details class="repli"><summary><h2>Modèles sûrs (__NM__)</h2></summary>__MODELES__<p class="sub">__TM__</p></details></section>
+<section><details class="repli" open><summary><h2>Modèles sûrs (__NM__)</h2></summary>__MODELES__<p class="sub">__TM__</p></details></section>
 <section><h2>Toutes les meilleures ventes</h2><div class="outils"><input type="search" id="q" placeholder="Chercher (modèle, marque, couleur, taille…)" aria-label="Chercher" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
 <select id="m" aria-label="Marque"></select><select id="r" aria-label="Recherche"></select>
 <select id="o" aria-label="Tri"><option value="v">Plus récentes</option><option value="h">Plus rapides</option><option value="p">Plus chères</option><option value="l">Plus aimées</option></select></div>
