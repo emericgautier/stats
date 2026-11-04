@@ -1058,22 +1058,32 @@ def html_likes(etat, t0, zoom):
                f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
         vt = f"{v:.0f}" if v >= 10 else f"{v:.1f}".replace(".", ",")
         cartes.append(
-            f'<article class="card" data-age="{h:.2f}" data-s="{html.escape(a["taille"] or "")}" data-x="♥ {a["likes"]} en {fmt_h(h)}"><div class="ph">{img}<span class="b d{" hot" if v >= 2 else ""}">{vt} ♥/h</span>'
+            f'<article class="card" data-age="{h:.2f}" data-m="{html.escape((a["marque"] or "").strip())}" data-s="{html.escape(a["taille"] or "")}" data-x="♥ {a["likes"]} en {fmt_h(h)}"><div class="ph">{img}<span class="b d{" hot" if v >= 2 else ""}">{vt} ♥/h</span>'
             f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="t">{html.escape(a["marque"] or a["recherche"])}</span>'
             f'<span>♥ {a["likes"]} en {fmt_h(h)}</span><span class="m">{html.escape(a["titre"])}</span>'
             f'<span class="m">{html.escape(" · ".join(x for x in (a["taille"], a["etat_article"]) if x))}</span>'
             f'<a href="{html.escape(a["url"])}" target="_blank" rel="noopener">Voir l’annonce ↗</a></div></article>')
     puces = "".join(f'<button type="button" class="remontrer" data-h="{x}">≤ {x} h</button>' for x in (1, 3, 6, 12, 24))
+    nb = {}
+    for a in lk[:LIKES_AFFICHEES]:
+        mq = (a["marque"] or "").strip()
+        if mq:
+            nb[mq] = nb.get(mq, 0) + 1
+    if len(nb) > 1:
+        puces += ('<select id="lkm" aria-label="Marque"><option value="">Toutes les marques</option>'
+                  + "".join(f'<option value="{html.escape(m)}">{html.escape(m)} ({n})</option>' for m, n in sorted(nb.items(), key=lambda x: (-x[1], x[0].lower())))
+                  + '</select>')
     return (
         f"""<section><details class="repli"><summary><h2>Likes rapides</h2></summary><div class="filtres" id="lkf">{puces}</div>"""
         f"""<div class="grid" id="lkg">{''.join(cartes) or '<p class="sub">Pas encore d’annonce : le premier relevé arrive au prochain passage.</p>'}</div>"""
         f"""<p class="sub" id="lkn"></p><p class="sub">Nouvelles annonces des recherches de <code>recherches_likes.txt</code>, particuliers seulement (sans les sliders « Voir le vendeur », les vendeurs Pro et les annonces boostées ou remontées), avec au moins {LIKES_MIN} likes. """
         f"""Classées par likes par heure depuis la mise en ligne (rouge : 2 ♥/h ou plus). Likes relevés à chaque passage.</p></details></section>"""
-        """<script>(function(){var f=document.getElementById('lkf'),g=document.getElementById('lkg'),n=document.getElementById('lkn'),K='likes_fenetre',h=6;
-try{h=+localStorage.getItem(K)||6}catch(e){}
-function maj(){var c=0;g.querySelectorAll('.card').forEach(function(e){var x=+e.dataset.age>h;e.hidden=x;if(!x)c++});
+        """<script>(function(){var f=document.getElementById('lkf'),g=document.getElementById('lkg'),n=document.getElementById('lkn'),sm=document.getElementById('lkm'),K='likes_fenetre',KM='likes_marque',h=6,mq='';
+try{h=+localStorage.getItem(K)||6;mq=localStorage.getItem(KM)||''}catch(e){}
+if(sm){if(![].some.call(sm.options,function(o){return o.value===mq}))mq='';sm.value=mq;sm.onchange=function(){mq=sm.value;try{localStorage.setItem(KM,mq)}catch(e){}maj()}}else mq='';
+function maj(){var c=0;g.querySelectorAll('.card').forEach(function(e){var x=+e.dataset.age>h||(mq&&e.dataset.m!==mq);e.hidden=x;if(!x)c++});
 f.querySelectorAll('button').forEach(function(b){var on=+b.dataset.h===h;b.style.background=on?'var(--accent)':'';b.style.color=on?'var(--bg)':''});
-n.textContent=c?'':'Aucune annonce mise en ligne depuis moins de '+h+' h avec assez de likes.'}
+n.textContent=c?'':'Aucune annonce'+(mq?' '+mq:'')+' mise en ligne depuis moins de '+h+' h avec assez de likes.'}
 f.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;h=+b.dataset.h;try{localStorage.setItem(K,h)}catch(e){}maj()});maj()})();</script>""")
 
 
