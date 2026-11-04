@@ -70,7 +70,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898233+github-actions[bot]@users.noreply.github.com"
-          git add -A meilleures_ventes.json docs/meilleures/photos
+          git add -A meilleures_ventes.json historique_ventes.json docs/meilleures/photos
           if git diff --cached --quiet; then exit 0; fi
           git commit -q -m "Meilleures ventes : mise à jour"
           for k in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && break; sleep 5; done

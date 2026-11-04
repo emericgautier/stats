@@ -13,6 +13,10 @@ Aucune connexion à un compte : le script lit seulement des pages publiques.
 
 Bouton **Meilleures** en haut de la page : une base gardée pour de bon (au-delà des 10 jours de la page principale). Chaque semaine, pour chaque recherche, les 5 ventes les plus rapides parties en 6 h au plus et au prix médian de leur recherche ou plus, avec photo, prix, délai, taille, couleur, date et lien. Recherche par mot (modèle, couleur, taille…), filtre marque ou recherche, tri, et bouton **Tableur** (fichier CSV). La base est dans `meilleures_ventes.json` et les photos réduites dans `docs/meilleures/photos/`, enregistrées dans le dépôt au plus toutes les 3 h. Réglages : `BASE_PAR_SEMAINE`, `BASE_MAX_H`.
 
+## Modèles sûrs
+
+En haut de la page (et de la page **Meilleures**) : les modèles reconnus par leur nom dans le titre (ex. Othello, Hoktown) vendus au moins 3 fois en 6 h au plus sur 60 jours, à un prix régulier. Pour chacun : photo, prix de revente médian, achat max, fourchette de revente, délai médian, dernières ventes et bouton **Chercher sur Vinted**. Les ventes rapides de 60 jours sont gardées dans `historique_ventes.json`. Réglages : `MODELE_MIN_VENTES`, `MODELE_ECART`, `HISTO_J`.
+
 ## Installation (une seule fois, ~10 min)
 
 1. **Notifications** : installe l'app gratuite **ntfy** sur l'iPhone, touche **+** et abonne-toi à un nom de sujet difficile à deviner, par exemple `ventes-emeric-7k2p9`.
