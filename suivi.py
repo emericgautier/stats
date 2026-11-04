@@ -1013,7 +1013,7 @@ pv.hidden=nx.hidden=L.length<2;if(L.length>1){{var n=new Image();n.referrerPolic
 function va(s){{if(L.length<2)return;k=(k+s+L.length)%L.length;show()}}
 function fermer(){{v.hidden=true;im.removeAttribute('src');document.body.style.overflow=''}}
 document.addEventListener('click',function(e){{var x=e.target.closest('img[data-u]');if(!x||v.contains(x))return;e.preventDefault();
-L=x.closest('#grid .card')?[].slice.call(document.querySelectorAll('#grid .card:not([hidden]):not(.masq) .ph img[data-u]')):[x];k=Math.max(0,L.indexOf(x));
+var g=x.closest('.card')&&x.closest('.grid');L=g?[].slice.call(g.querySelectorAll('.card:not([hidden]):not(.masq) .ph img[data-u]')):[x];k=Math.max(0,L.indexOf(x));
 show();v.hidden=false;document.body.style.overflow='hidden'}});
 pv.onclick=function(){{va(-1)}};nx.onclick=function(){{va(1)}};
 v.addEventListener('click',function(e){{if(e.target===v||e.target.classList.contains('x'))fermer()}});
@@ -1058,7 +1058,7 @@ def html_likes(etat, t0, zoom):
                f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
         vt = f"{v:.0f}" if v >= 10 else f"{v:.1f}".replace(".", ",")
         cartes.append(
-            f'<article class="card" data-age="{h:.2f}"><div class="ph">{img}<span class="b d{" hot" if v >= 2 else ""}">{vt} ♥/h</span>'
+            f'<article class="card" data-age="{h:.2f}" data-s="{html.escape(a["taille"] or "")}" data-x="♥ {a["likes"]} en {fmt_h(h)}"><div class="ph">{img}<span class="b d{" hot" if v >= 2 else ""}">{vt} ♥/h</span>'
             f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="t">{html.escape(a["marque"] or a["recherche"])}</span>'
             f'<span>♥ {a["likes"]} en {fmt_h(h)}</span><span class="m">{html.escape(a["titre"])}</span>'
             f'<span class="m">{html.escape(" · ".join(x for x in (a["taille"], a["etat_article"]) if x))}</span>'
@@ -1406,14 +1406,14 @@ def html_modeles(modeles, chemin_photos):
         v0 = m["ventes"][0]
         src = (chemin_photos + v0["ph"]) if v0.get("ph") else v0["f"]
         fu = f' data-fu="{html.escape(v0["f"])}"' if v0.get("ph") and v0["f"] else ""
-        img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(src)}"{fu} '
-               'onerror="if(this.dataset.fu&&this.src!==this.dataset.fu){this.src=this.dataset.fu}else{this.replaceWith(\'Photo expirée\')}">') if src else "Pas de photo"
         cherche = f"{BASE or 'https://www.vinted.fr'}/catalog?" + urlencode({"search_text": f"{m['marque']} {m['nom']}", "order": "newest_first"})
+        nom = f"{m['type'].capitalize() + ' ' if m['type'] else ''}{m['nom']}"
+        img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(src)}"{fu} data-u="{html.escape(cherche)}" data-t="{html.escape(m["marque"] + " " + nom)}" '
+               'onerror="if(this.dataset.fu&&this.src!==this.dataset.fu){this.src=this.dataset.fu}else{this.replaceWith(\'Photo expirée\')}">') if src else "Pas de photo"
         vig = "".join(f'<a href="{html.escape(v["u"])}" target="_blank" rel="noopener" title="{html.escape(v["t"])} · {fmt_prix(v["p"])} · ≤ {fmt_h(v["h"])}">{fmt_prix(v["p"])}</a>'
                       for v in m["ventes"])
-        nom = f"{m['type'].capitalize() + ' ' if m['type'] else ''}{m['nom']}"
         cartes.append(
-            f'<article class="card" data-m="{html.escape(m["marque"])}"><div class="ph"><a href="{html.escape(cherche)}" target="_blank" rel="noopener" style="display:contents">{img}</a>'
+            f'<article class="card" data-m="{html.escape(m["marque"])}" data-x="achat max ≤ {fmt_prix(round(m["achat"]))}"><div class="ph"><a href="{html.escape(cherche)}" target="_blank" rel="noopener" style="display:contents">{img}</a>'
             f'<span class="b d hot">{m["n"]} ventes ≤ {BASE_MAX_H} h</span><span class="b p">{fmt_prix(m["median"])}</span></div>'
             f'<div class="body"><span class="m">{html.escape(m["marque"])}</span><span class="t">{html.escape(nom)}</span>'
             f'<span class="achat">Achat max ≤ {fmt_prix(round(m["achat"]))}</span>'
