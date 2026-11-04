@@ -1,0 +1,4 @@
+# Recherches lues seulement pour « Likes rapides » (en haut de la page) : likes des nouvelles annonces, sans suivi des ventes.
+# Une ligne « Nom affiché | adresse de la recherche Vinted », prise telle quelle (marques, catégorie, états, prix).
+# Pour en ajouter une : faire la recherche sur Vinted, copier l'adresse, ajouter une ligne. Pour l'arrêter : mettre # devant.
+12 marques femme ≥ 50 € | https://www.vinted.fr/catalog?catalog[]=4&brand_ids[]=43777&brand_ids[]=392094&brand_ids[]=38437&brand_ids[]=3697&brand_ids[]=139808&brand_ids[]=90804&brand_ids[]=11&brand_ids[]=130332&brand_ids[]=2007&brand_ids[]=18751&brand_ids[]=1153&brand_ids[]=6082417&brand_ids[]=115&status_ids[]=6&status_ids[]=1&status_ids[]=2&order=newest_first&price_from=50&currency=EUR
