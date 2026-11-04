@@ -697,7 +697,11 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute
 .b{position:absolute;padding:2px 7px;border-radius:4px;font-size:12px;font-weight:600}.p{bottom:8px;left:8px;background:var(--ink);color:var(--bg)}.d{top:8px;right:8px;background:var(--surface)}.d.hot{color:var(--hot)}
 .body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:3px;flex:1;font-size:13px}.t{font-weight:600}.m{color:var(--muted);font-size:12px}
 .body a{margin-top:auto;color:var(--accent);font-weight:600;text-decoration:none}
-.filtres{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.filtres select{flex:1 1 220px;min-width:0;font:600 16px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+.filtres{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.rech{position:relative;flex:1 1 100%}.rech input{width:100%;font:600 16px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+.sug{position:absolute;z-index:5;left:0;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);overflow:hidden}
+.sug button{display:flex;justify-content:space-between;width:100%;font:600 16px system-ui;color:var(--ink);background:none;border:0;border-bottom:1px solid var(--line);padding:12px;text-align:left;cursor:pointer}
+.sug button:last-child{border-bottom:0}.sug button span{color:var(--muted);font-weight:400}.sug button:hover,.sug button:focus{background:var(--accent-soft)}.sug p{margin:0;padding:12px;color:var(--muted)}.filtres select{flex:1 1 220px;min-width:0;font:600 16px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
 [hidden],.card.masq{display:none!important}
 .cache{position:absolute;top:8px;left:8px;width:28px;height:28px;border-radius:99px;border:0;background:rgba(0,0,0,.55);color:#fff;font:600 18px/28px system-ui;padding:0;cursor:pointer}
 .remontrer{font:600 14px system-ui;color:var(--accent);background:var(--accent-soft);border:0;border-radius:8px;padding:9px 12px;cursor:pointer}
@@ -800,7 +804,7 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <section><details class="repli"><summary><h2>Par recherche</h2></summary><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></details></section>
-<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><select id="f" aria-label="Marque ou recherche" hidden></select><button type="button" class="remontrer" id="remontrer" hidden></button></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
+<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><div class="rech" id="rech" hidden><input type="search" id="q" placeholder="Chercher une marque…" aria-label="Chercher une marque" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><div class="sug" id="sug" hidden></div></div><select id="f" aria-label="Marque ou recherche" hidden></select><button type="button" class="remontrer" id="remontrer" hidden></button></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
 <div class="vue" id="vue" hidden><button type="button" class="x" aria-label="Fermer">×</button><button type="button" class="fl pv" aria-label="Précédente">‹</button><button type="button" class="fl nx" aria-label="Suivante">›</button><div class="vph"><img alt="" referrerpolicy="no-referrer"><span class="b d"></span></div><p></p><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div>
 <script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),c=document.getElementById('f'),choix=[],par={{}};
 // Un seul menu : toutes les ventes, puis une ligne par marque
@@ -810,7 +814,24 @@ ajouter('Toutes les ventes ('+cartes.length+')',null);
 var ks=Object.keys(par).sort(function(x,y){{return par[x].nom.localeCompare(par[y].nom,'fr')}});
 ks.forEach(function(k){{var b=par[k];ajouter(b.nom+' ('+b.n+')',{{m:k}})}});
 if(ks.length>1||choix.length>2){{c.hidden=false;c.onchange=function(){{var f=choix[+c.value];
-cartes.forEach(function(e){{e.hidden=!!f&&((e.dataset.m||'').trim().toLowerCase()!==f.m||(!!f.r&&e.dataset.r!==f.r))}})}}}}}})();
+cartes.forEach(function(e){{e.hidden=!!f&&((e.dataset.m||'').trim().toLowerCase()!==f.m||(!!f.r&&e.dataset.r!==f.r))}})}};
+// Recherche rapide : taper le début d'une marque puis toucher la suggestion
+var rq=document.getElementById('rech'),q=document.getElementById('q'),sg=document.getElementById('sug'),pos={{}};
+choix.forEach(function(f,i){{if(f)pos[f.m]=i}});
+function nz(x){{return x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'')}}
+function choisir(k){{c.value=k?pos[k]:0;c.onchange();q.value=k?par[k].nom:'';sg.hidden=true;q.blur()}}
+function proposer(){{var v=nz(q.value);sg.innerHTML='';if(!v){{sg.hidden=true;if(c.value!=='0')choisir(null);return}}
+var d=[],m=[];ks.forEach(function(k){{var n=nz(par[k].nom);if(n.indexOf(v)===0)d.push(k);else if(n.indexOf(v)>0)m.push(k)}});
+d.concat(m).slice(0,8).forEach(function(k){{var b=document.createElement('button');b.type='button';b.dataset.k=k;
+var e=document.createElement('span');e.textContent=par[k].n;b.append(par[k].nom,e);sg.appendChild(b)}});
+if(!sg.children.length){{var p=document.createElement('p');p.textContent='Aucune marque';sg.appendChild(p)}}sg.hidden=false}}
+q.addEventListener('input',proposer);q.addEventListener('focus',function(){{if(q.value)proposer()}});
+q.addEventListener('keydown',function(e){{if(e.key==='Enter'){{e.preventDefault();var b=sg.querySelector('button');if(b)choisir(b.dataset.k)}}else if(e.key==='Escape')sg.hidden=true}});
+sg.addEventListener('pointerdown',function(e){{e.preventDefault()}});
+sg.addEventListener('click',function(e){{var b=e.target.closest('button');if(b)choisir(b.dataset.k)}});
+document.addEventListener('click',function(e){{if(!rq.contains(e.target))sg.hidden=true}});
+c.addEventListener('change',function(){{var f=choix[+c.value];q.value=f?par[f.m].nom:''}});
+rq.hidden=ks.length<2}}}})();
 (function(){{var K='ventes_masquees',m={{}},b=document.getElementById('remontrer');
 // Croix sur une carte : la vente est masquée sur cet appareil
 try{{m=JSON.parse(localStorage.getItem(K)||'{{}}')||{{}}}}catch(e){{}}
