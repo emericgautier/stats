@@ -466,10 +466,15 @@ def est_pro(it):
     return False
 
 
-def ages_corriges(items):
-    """Date de mise en ligne : la plus ancienne entre la date des photos et celle déduite du numéro d'annonce.
-    Les numéros croissent avec le temps ; une annonce remontée ou dont les photos ont changé garde son vieux numéro."""
-    pts = sorted((int(it["id"]), publie_le(it)) for it in items if publie_le(it))
+def ages_corriges(items, ancres=None):
+    """Date de mise en ligne de chaque annonce.
+    Repères : date des photos quand elle existe, sinon heure à laquelle le suivi a vu l'annonce apparaître (ancres).
+    Les numéros d'annonce croissent avec le temps : on en déduit une date pour chaque annonce, et on garde
+    la plus ancienne des deux (une annonce remontée ou aux photos changées garde son vieux numéro)."""
+    ancres = ancres or {}
+    def repere(it):
+        return publie_le(it) or ancres.get(str(it["id"])) or None
+    pts = sorted((int(it["id"]), repere(it)) for it in items if repere(it))
     est = {}
     if len(pts) >= 20:
         n = len(pts) // 3
@@ -479,13 +484,12 @@ def ages_corriges(items):
         if di > 0 and dt > 0:
             b = dt / di
             a = statistics.median(t - b * i for i, t in pts)
-            est = {i: a + b * i for i, _ in pts}
             for it in items:
-                est.setdefault(int(it["id"]), a + b * int(it["id"]))
+                est[int(it["id"])] = a + b * int(it["id"])
     out = {}
     for it in items:
         i = int(it["id"])
-        ts = publie_le(it)
+        ts = repere(it)
         e = est.get(i)
         if e is not None and (ts is None or ts > e + 6 * 3600):
             ts = e
@@ -497,8 +501,12 @@ def passage_likes(etat, t0):
     """Relève les likes des nouvelles annonces des recherches « likes » (sans revérifier les ventes)."""
     recherches = lire_recherches_likes()
     lk = etat.setdefault("likes", {})
+    vus = etat.setdefault("likes_vus", {})          # id -> heure d'apparition (0 : déjà là au premier relevé)
+    init = set(etat.setdefault("likes_recherches", []))
     for i in [i for i, a in lk.items() if not a.get("publie") or t0 - a["publie"] > LIKES_GARDE_H * 3600]:
         del lk[i]
+    for i in [i for i, v in vus.items() if v and t0 - v > 3 * 86400]:
+        del vus[i]
     for nom, url in recherches:
         lus = []
         try:
@@ -513,7 +521,11 @@ def passage_likes(etat, t0):
         except Exception as e:
             log(f"[likes · {nom}] erreur de recherche : {e}")
             continue
-        ages = ages_corriges(lus)
+        for it in lus:
+            i = str(it["id"])
+            if i not in vus:
+                vus[i] = t0 if nom in init else 0
+        ages = ages_corriges(lus, {str(it["id"]): vus.get(str(it["id"])) for it in lus})
         n = 0
         for it in lus:
             i = str(it["id"])
@@ -529,7 +541,11 @@ def passage_likes(etat, t0):
             a["maj"] = t0
             lk[i] = a
             n += 1
-        log(f"[likes · {nom}] {len(lus)} annonces lues, {n} de moins de {LIKES_GARDE_H} h")
+        if nom not in init:
+            etat["likes_recherches"].append(nom)
+        photos = sum(1 for it in lus if publie_le(it))
+        avec_likes = sum(1 for it in lus if it.get("favourite_count") is not None)
+        log(f"[likes · {nom}] {len(lus)} annonces lues ({photos} avec date photo, {avec_likes} avec likes), {n} de moins de {LIKES_GARDE_H} h")
 
 
 def lire_prix_min():
