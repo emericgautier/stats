@@ -34,6 +34,7 @@ FICHIER_RECHERCHES = os.path.join(ICI, "recherches.txt")  # repli local, hors d�
 FICHIER_AJOUTEES = os.path.join(ICI, "recherches_ajoutees.txt")  # recherches en plus du secret, modifiables sur GitHub
 FICHIER_PRIX_MIN = os.path.join(ICI, "prix_min.txt")  # prix minimum par recherche, modifiable sur GitHub
 FICHIER_RETIREES = os.path.join(ICI, "recherches_retirees.txt")  # recherches à ne plus suivre
+FICHIER_LIKES = os.path.join(ICI, "recherches_likes.txt")  # recherches lues seulement pour les likes des nouvelles annonces
 FICHIER_ETAT = os.path.join(ICI, "etat.json")
 FICHIER_ETAT_ANCIEN = os.path.join(ICI, "etat_ancien.json")  # mémoire d'avant le retrait de recherches, relue une seule fois
 RESTAURER = ["Ba&sh sweat", "Sézane sweat", "Sézane trench"]  # recherches retirées dont on récupère les ventes passées
@@ -68,6 +69,10 @@ MODELE_ECART = 0.25        # … avec au moins 2 ventes sur 3 à ± 25 % du prix
 BASE_ENREGISTRER_H = 3     # la base est enregistrée dans le dépôt au plus toutes les X heures
 COPIE_MARQUE = False        # True : copie de chaque vente sur le sujet de sa marque (sujet-marque) en plus du sujet principal
 RESUME_JOUR, RESUME_HEURE = 0, 8  # résumé de la semaine le lundi (0) à partir de 8 h
+LIKES_PAGES = 3            # pages lues par recherche « likes » (96 annonces par page, les plus récentes)
+LIKES_GARDE_H = 24         # annonces gardées X heures après leur mise en ligne
+LIKES_MIN = 3              # likes minimum pour apparaître dans « Likes rapides »
+LIKES_AFFICHEES = 60       # cartes affichées au plus
 
 UA = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
@@ -172,14 +177,31 @@ def items_depuis_flux(texte):
 
 def items_depuis_grille(texte):
     """Annonces lues dans la grille HTML, si les données embarquées manquent."""
+    global VITRINE_IDS, GRILLE_IDS
     soup = BeautifulSoup(texte, "html.parser")
     out, vus = [], set()
+    # Sliders « Voir le vendeur » (dressing mis en avant) : ces annonces ne font pas partie des résultats
+    VITRINE_IDS, GRILLE_IDS = set(), set()
+    reperes = [e for e in soup.find_all(["a", "button"]) if re.search(r"voir le (vendeur|dressing)", e.get_text(" "), re.I)]
+    reperes += soup.select('[data-testid*="closet" i]')
+    for e in reperes:
+        c = e.parent
+        for _ in range(12):
+            if c is None or c.select('[data-testid^="product-item-id-"]'):
+                break
+            c = c.parent
+        if c is None:
+            continue
+        ids = {re.search(r"product-item-id-(\d+)", b.get("data-testid", "")).group(1) for b in c.select('[data-testid^="product-item-id-"]')}
+        if len(ids) <= 40:
+            VITRINE_IDS |= ids
     for bloc in soup.select('[data-testid^="product-item-id-"]'):
         m = re.search(r"product-item-id-(\d+)", bloc.get("data-testid", ""))
         if not m or m.group(1) in vus:
             continue
         i = m.group(1)
         vus.add(i)
+        GRILLE_IDS.add(i)
         a = bloc.select_one('a[href*="/items/"]')
         info = (a.get("title") if a else "") or ""
         img = bloc.select_one("img")
@@ -204,6 +226,7 @@ def items_depuis_grille(texte):
 
 DERNIERE_METHODE = ""
 EXEMPLE_BRUT = ""
+VITRINE_IDS, GRILLE_IDS = set(), set()
 
 
 def _titre(v):
@@ -419,6 +442,96 @@ def lire_recherches():
     return out
 
 
+def lire_recherches_likes():
+    """Recherches « likes » : une ligne « Nom | adresse Vinted », prise telle quelle (états et prix de l'adresse)."""
+    out = []
+    if os.path.exists(FICHIER_LIKES):
+        with open(FICHIER_LIKES, encoding="utf-8") as f:
+            for ligne in f:
+                ligne = ligne.strip()
+                if not ligne or ligne.startswith("#") or "|" not in ligne:
+                    continue
+                nom, url = [x.strip() for x in ligne.split("|", 1)]
+                out.append((nom, url))
+    return out
+
+
+def est_pro(it):
+    """Vendeur professionnel (boutique), d'après les données de l'annonce."""
+    u = it.get("user") if isinstance(it.get("user"), dict) else {}
+    for d in (it, u):
+        for k in ("business", "is_business", "isBusiness", "business_user", "businessUser", "is_business_user"):
+            if d.get(k) is True:
+                return True
+    return False
+
+
+def ages_corriges(items):
+    """Date de mise en ligne : la plus ancienne entre la date des photos et celle déduite du numéro d'annonce.
+    Les numéros croissent avec le temps ; une annonce remontée ou dont les photos ont changé garde son vieux numéro."""
+    pts = sorted((int(it["id"]), publie_le(it)) for it in items if publie_le(it))
+    est = {}
+    if len(pts) >= 20:
+        n = len(pts) // 3
+        bas, haut = pts[:n], pts[-n:]
+        di = statistics.median(i for i, _ in haut) - statistics.median(i for i, _ in bas)
+        dt = statistics.median(t for _, t in haut) - statistics.median(t for _, t in bas)
+        if di > 0 and dt > 0:
+            b = dt / di
+            a = statistics.median(t - b * i for i, t in pts)
+            est = {i: a + b * i for i, _ in pts}
+            for it in items:
+                est.setdefault(int(it["id"]), a + b * int(it["id"]))
+    out = {}
+    for it in items:
+        i = int(it["id"])
+        ts = publie_le(it)
+        e = est.get(i)
+        if e is not None and (ts is None or ts > e + 6 * 3600):
+            ts = e
+        out[str(i)] = ts
+    return out
+
+
+def passage_likes(etat, t0):
+    """Relève les likes des nouvelles annonces des recherches « likes » (sans revérifier les ventes)."""
+    recherches = lire_recherches_likes()
+    lk = etat.setdefault("likes", {})
+    for i in [i for i, a in lk.items() if not a.get("publie") or t0 - a["publie"] > LIKES_GARDE_H * 3600]:
+        del lk[i]
+    for nom, url in recherches:
+        lus = []
+        try:
+            for page in range(1, LIKES_PAGES + 1):
+                items = chercher(url, page)
+                if GRILLE_IDS:
+                    items = [it for it in items if str(it["id"]) in GRILLE_IDS]
+                lus += [it for it in items if str(it["id"]) not in VITRINE_IDS]
+                if len(items) < 20:
+                    break
+                time.sleep(random.uniform(*PAUSE))
+        except Exception as e:
+            log(f"[likes · {nom}] erreur de recherche : {e}")
+            continue
+        ages = ages_corriges(lus)
+        n = 0
+        for it in lus:
+            i = str(it["id"])
+            pub = ages.get(i)
+            if est_enfant(it) or est_pro(it) or it.get("promoted") or it.get("is_promoted") or not pub or t0 - pub > LIKES_GARDE_H * 3600:
+                lk.pop(i, None)
+                continue
+            a = lk.get(i) or annonce_depuis_api(it, nom)
+            a["publie"] = min(pub, a.get("publie") or pub)
+            likes = it.get("favourite_count")
+            if likes is not None:
+                a["likes"] = likes
+            a["maj"] = t0
+            lk[i] = a
+            n += 1
+        log(f"[likes · {nom}] {len(lus)} annonces lues, {n} de moins de {LIKES_GARDE_H} h")
+
+
 def lire_prix_min():
     """Prix minimum par nom de recherche (lignes « Nom | prix »)."""
     out = {}
@@ -624,6 +737,11 @@ def passage():
         if nom not in etat["recherches_vues"]:
             etat["recherches_vues"].append(nom)
 
+    try:
+        passage_likes(etat, t0)
+    except Exception as e:
+        log(f"Likes rapides : {e}")
+
     # Annonces à revérifier : disparues des résultats, encore dans la fenêtre de suivi
     a_verifier = [a for i, a in ann.items()
                   if a["statut"] in ("dispo", "reserve") and i not in presents
@@ -814,6 +932,8 @@ def ecrire_rapport(etat):
         f"""{f'<p class="sub"><a href="meilleures/">Voir les {len(MODELES)} modèles sûrs ↗</a></p>' if len(MODELES) > 24 else ''}"""
         f"""<p class="sub">{texte_modeles()}</p></details></section>""")
 
+    section_likes = html_likes(etat, t0, zoom)
+
     maj = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
     page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Ventes suivies</title>
@@ -821,6 +941,7 @@ def ecrire_rapport(etat):
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ventes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>{CSS}</style></head><body><div class="tirer" id="tirer">↓ Tirer pour actualiser</div><div class="wrap">
 <header><div class="haut"><h1>Ventes suivies</h1><div class="boutons"><a href="meilleures/">Meilleures</a><a href="analyses/">Analyses</a><button type="button" id="actualiser">↻ Actualiser</button></div></div><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
 Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vente a été repérée : la vente réelle a eu lieu avant.</p></header>
+{section_likes}
 {section_modeles}
 {section_cl}
 {section_couleurs}
@@ -893,6 +1014,41 @@ document.addEventListener('visibilitychange',function(){{if(!document.hidden&&Da
     os.makedirs(os.path.dirname(FICHIER_RAPPORT), exist_ok=True)
     with open(FICHIER_RAPPORT, "w", encoding="utf-8") as f:
         f.write(page)
+
+
+def html_likes(etat, t0, zoom):
+    """Section « Likes rapides » : nouvelles annonces classées par likes par heure depuis leur mise en ligne."""
+    lk = [a for a in (etat.get("likes") or {}).values() if a.get("publie") and (a.get("likes") or 0) >= LIKES_MIN]
+    if not lire_recherches_likes() and not lk:
+        return ""
+    def vitesse(a):
+        return a["likes"] / max(0.5, (t0 - a["publie"]) / 3600)
+    lk.sort(key=vitesse, reverse=True)
+    cartes = []
+    for a in lk[:LIKES_AFFICHEES]:
+        h = (t0 - a["publie"]) / 3600
+        v = vitesse(a)
+        img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" {zoom(a)} '
+               f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
+        vt = f"{v:.0f}" if v >= 10 else f"{v:.1f}".replace(".", ",")
+        cartes.append(
+            f'<article class="card" data-age="{h:.2f}"><div class="ph">{img}<span class="b d{" hot" if v >= 2 else ""}">{vt} ♥/h</span>'
+            f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="t">{html.escape(a["marque"] or a["recherche"])}</span>'
+            f'<span>♥ {a["likes"]} en {fmt_h(h)}</span><span class="m">{html.escape(a["titre"])}</span>'
+            f'<span class="m">{html.escape(" · ".join(x for x in (a["taille"], a["etat_article"]) if x))}</span>'
+            f'<a href="{html.escape(a["url"])}" target="_blank" rel="noopener">Voir l’annonce ↗</a></div></article>')
+    puces = "".join(f'<button type="button" class="remontrer" data-h="{x}">≤ {x} h</button>' for x in (1, 3, 6, 12, 24))
+    return (
+        f"""<section><details class="repli" open><summary><h2>Likes rapides</h2></summary><div class="filtres" id="lkf">{puces}</div>"""
+        f"""<div class="grid" id="lkg">{''.join(cartes) or '<p class="sub">Pas encore d’annonce : le premier relevé arrive au prochain passage.</p>'}</div>"""
+        f"""<p class="sub" id="lkn"></p><p class="sub">Nouvelles annonces des recherches de <code>recherches_likes.txt</code>, particuliers seulement (sans les sliders « Voir le vendeur », les vendeurs Pro et les annonces boostées ou remontées), avec au moins {LIKES_MIN} likes. """
+        f"""Classées par likes par heure depuis la mise en ligne (rouge : 2 ♥/h ou plus). Likes relevés à chaque passage.</p></details></section>"""
+        """<script>(function(){var f=document.getElementById('lkf'),g=document.getElementById('lkg'),n=document.getElementById('lkn'),K='likes_fenetre',h=6;
+try{h=+localStorage.getItem(K)||6}catch(e){}
+function maj(){var c=0;g.querySelectorAll('.card').forEach(function(e){var x=+e.dataset.age>h;e.hidden=x;if(!x)c++});
+f.querySelectorAll('button').forEach(function(b){var on=+b.dataset.h===h;b.style.background=on?'var(--accent)':'';b.style.color=on?'var(--bg)':''});
+n.textContent=c?'':'Aucune annonce mise en ligne depuis moins de '+h+' h avec assez de likes.'}
+f.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;h=+b.dataset.h;try{localStorage.setItem(K,h)}catch(e){}maj()});maj()})();</script>""")
 
 
 def slug(t):
