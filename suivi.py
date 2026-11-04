@@ -965,7 +965,7 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <section><details class="repli"><summary><h2>Par recherche</h2></summary><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></details></section>
-<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><div class="rech" id="rech" hidden><input type="search" id="q" placeholder="Chercher une marque…" aria-label="Chercher une marque" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><div class="sug" id="sug" hidden></div></div><select id="f" aria-label="Marque ou recherche" hidden></select><button type="button" class="remontrer" id="remontrer" hidden></button></div><div class="filtres badges" id="bdg" hidden></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
+<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><div class="rech" id="rech" hidden><input type="search" id="q" placeholder="Chercher une marque…" aria-label="Chercher une marque" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><div class="sug" id="sug" hidden></div></div><select id="f" aria-label="Marque ou recherche" hidden></select></div><div class="filtres badges" id="bdg" hidden></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
 <div class="vue" id="vue" hidden><button type="button" class="x" aria-label="Fermer">×</button><button type="button" class="fl pv" aria-label="Précédente">‹</button><button type="button" class="fl nx" aria-label="Suivante">›</button><div class="vph"><img alt="" referrerpolicy="no-referrer"><span class="b d"></span></div><p></p><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div>
 <script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),c=document.getElementById('f'),choix=[],par={{}};
 // Un seul menu : toutes les ventes, puis une ligne par marque
@@ -1006,15 +1006,14 @@ bouton('Toutes',!ck,function(){{choisir(null);badges()}});
 ks.filter(function(k){{return fav.indexOf(nz(par[k].nom))>=0}}).forEach(function(k){{bouton(par[k].nom+' ('+par[k].n+')',ck===k,function(){{choisir(ck===k?null:k);badges()}})}});
 bouton('✎ Choisir',false,function(){{edit=true;badges()}})}}
 c.addEventListener('change',badges);bd.hidden=ks.length<2;badges()}}}})();
-(function(){{var K='ventes_masquees',m={{}},b=document.getElementById('remontrer');
+(function(){{var K='ventes_masquees',m={{}};
 // Croix sur une carte : la vente est masquée sur cet appareil
 try{{m=JSON.parse(localStorage.getItem(K)||'{{}}')||{{}}}}catch(e){{}}
-function maj(){{var n=0;document.querySelectorAll('#grid .card').forEach(function(c){{var x=!!m[c.dataset.id];c.classList.toggle('masq',x);if(x)n++}});
-b.hidden=!n;b.textContent='Réafficher les masquées ('+n+')'}}
+function maj(){{document.querySelectorAll('#grid .card').forEach(function(c){{c.classList.toggle('masq',!!m[c.dataset.id])}})}}
 function garder(){{try{{localStorage.setItem(K,JSON.stringify(m))}}catch(e){{}}}}
 document.getElementById('grid').addEventListener('click',function(e){{var x=e.target.closest('.cache');if(!x)return;e.preventDefault();e.stopPropagation();
 m[x.closest('.card').dataset.id]=Date.now();garder();maj()}});
-b.onclick=function(){{m={{}};garder();maj()}};maj()}})();
+maj()}})();
 (function(){{var v=document.getElementById('vue'),im=v.querySelector('img'),bd=v.querySelector('.vph .b'),t=v.querySelector('p'),l=v.querySelector('a'),pv=v.querySelector('.pv'),nx=v.querySelector('.nx'),L=[],k=0;
 // Fenêtre photo : flèches ou balayage pour passer aux ventes voisines (celles affichées selon le menu)
 function show(){{var x=L[k],c=x.closest('.card');im.src=x.currentSrc||x.src;l.href=x.dataset.u;t.textContent='';
