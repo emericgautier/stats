@@ -945,7 +945,7 @@ def ecrire_rapport(etat):
         """<p class="sub">Jusqu’à 4 couleurs par marque, des plus vendues en moins de 24 h aux moins vendues. La couleur est celle indiquée par le vendeur.</p></details></section>""")
 
     section_modeles = (
-        f"""<section><details class="repli" open><summary><h2>Modèles sûrs ({len(MODELES)})</h2></summary>{html_modeles(MODELES[:24], "meilleures/photos/")}"""
+        f"""<section><details class="repli"><summary><h2>Modèles sûrs ({len(MODELES)})</h2></summary>{html_modeles(MODELES[:24], "meilleures/photos/")}"""
         f"""{f'<p class="sub"><a href="meilleures/">Voir les {len(MODELES)} modèles sûrs ↗</a></p>' if len(MODELES) > 24 else ''}"""
         f"""<p class="sub">{texte_modeles()}</p></details></section>""")
 
@@ -1065,7 +1065,7 @@ def html_likes(etat, t0, zoom):
             f'<a href="{html.escape(a["url"])}" target="_blank" rel="noopener">Voir l’annonce ↗</a></div></article>')
     puces = "".join(f'<button type="button" class="remontrer" data-h="{x}">≤ {x} h</button>' for x in (1, 3, 6, 12, 24))
     return (
-        f"""<section><details class="repli" open><summary><h2>Likes rapides</h2></summary><div class="filtres" id="lkf">{puces}</div>"""
+        f"""<section><details class="repli"><summary><h2>Likes rapides</h2></summary><div class="filtres" id="lkf">{puces}</div>"""
         f"""<div class="grid" id="lkg">{''.join(cartes) or '<p class="sub">Pas encore d’annonce : le premier relevé arrive au prochain passage.</p>'}</div>"""
         f"""<p class="sub" id="lkn"></p><p class="sub">Nouvelles annonces des recherches de <code>recherches_likes.txt</code>, particuliers seulement (sans les sliders « Voir le vendeur », les vendeurs Pro et les annonces boostées ou remontées), avec au moins {LIKES_MIN} likes. """
         f"""Classées par likes par heure depuis la mise en ligne (rouge : 2 ♥/h ou plus). Likes relevés à chaque passage.</p></details></section>"""
@@ -1243,7 +1243,7 @@ def ecrire_page_base(garde, t0):
 <style>__CSS__</style></head><body><div class="wrap">
 <header><div class="haut"><h1>Meilleures ventes</h1><div class="boutons"><a href="../">← Ventes</a><a href="meilleures-ventes.csv" download>Tableur</a></div></div>
 <p class="sub">Gardées pour de bon : chaque semaine, les __N__ ventes les plus rapides de chaque recherche, parties en __H__ h au plus et au prix médian de leur recherche ou plus. Mis à jour le __MAJ__.</p></header>
-<section><details class="repli" open><summary><h2>Modèles sûrs (__NM__)</h2></summary>__MODELES__<p class="sub">__TM__</p></details></section>
+<section><details class="repli"><summary><h2>Modèles sûrs (__NM__)</h2></summary>__MODELES__<p class="sub">__TM__</p></details></section>
 <section><h2>Toutes les meilleures ventes</h2><div class="outils"><input type="search" id="q" placeholder="Chercher (modèle, marque, couleur, taille…)" aria-label="Chercher" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
 <select id="m" aria-label="Marque"></select><select id="r" aria-label="Recherche"></select>
 <select id="o" aria-label="Tri"><option value="v">Plus récentes</option><option value="h">Plus rapides</option><option value="p">Plus chères</option><option value="l">Plus aimées</option></select></div>
