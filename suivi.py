@@ -815,6 +815,7 @@ def passage():
         log(f"Base des meilleures ventes : {e}")
     ecrire_rapport(etat)
     ecrire_export(etat)
+    ecrire_likes_json(etat)
 
 
 # ---------------------------------------------------------------- rapport
@@ -1014,6 +1015,15 @@ document.addEventListener('visibilitychange',function(){{if(!document.hidden&&Da
     os.makedirs(os.path.dirname(FICHIER_RAPPORT), exist_ok=True)
     with open(FICHIER_RAPPORT, "w", encoding="utf-8") as f:
         f.write(page)
+
+
+def ecrire_likes_json(etat):
+    """docs/likes.json : les annonces de « Likes rapides », lues par le bouton du navigateur sur Vinted."""
+    t0 = etat.get("dernier_passage") or maintenant()
+    champs = ("id", "recherche", "titre", "prix", "marque", "taille", "etat_article", "photo", "url", "likes", "publie")
+    lst = [{k: a.get(k) for k in champs} for a in (etat.get("likes") or {}).values() if a.get("publie")]
+    with open(os.path.join(ICI, "docs", "likes.json"), "w", encoding="utf-8") as f:
+        json.dump({"maj": t0, "annonces": lst}, f, ensure_ascii=False, separators=(",", ":"))
 
 
 def html_likes(etat, t0, zoom):
