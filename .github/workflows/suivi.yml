@@ -96,4 +96,11 @@ jobs:
         if: ${{ !cancelled() && github.event.inputs.mode != 'test' }}
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run suivi.yml --ref main -f mode=suivi
+        # GitHub répond parfois 502 : on réessaie, sinon la chaîne s'arrête jusqu'à la tâche horaire
+        run: |
+          for i in 1 2 3 4 5; do
+            gh workflow run suivi.yml --ref main -f mode=suivi && exit 0
+            echo "Relance refusée, nouvel essai dans $((i * 20)) s"
+            sleep $((i * 20))
+          done
+          exit 1
