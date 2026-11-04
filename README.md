@@ -9,6 +9,10 @@ Environ toutes les 15 minutes, GitHub lance `suivi.py` (2 passages par lancement
 
 Aucune connexion à un compte : le script lit seulement des pages publiques.
 
+## Meilleures ventes
+
+Bouton **Meilleures** en haut de la page : une base gardée pour de bon (au-delà des 10 jours de la page principale). Chaque semaine, pour chaque recherche, les 5 ventes les plus rapides parties en 6 h au plus et au prix médian de leur recherche ou plus, avec photo, prix, délai, taille, couleur, date et lien. Recherche par mot (modèle, couleur, taille…), filtre marque ou recherche, tri, et bouton **Tableur** (fichier CSV). La base est dans `meilleures_ventes.json` et les photos réduites dans `docs/meilleures/photos/`, enregistrées dans le dépôt au plus toutes les 3 h. Réglages : `BASE_PAR_SEMAINE`, `BASE_MAX_H`.
+
 ## Installation (une seule fois, ~10 min)
 
 1. **Notifications** : installe l'app gratuite **ntfy** sur l'iPhone, touche **+** et abonne-toi à un nom de sujet difficile à deviner, par exemple `ventes-emeric-7k2p9`.
