@@ -39,6 +39,7 @@ FICHIER_ETAT_ANCIEN = os.path.join(ICI, "etat_ancien.json")  # mémoire d'avant 
 RESTAURER = ["Ba&sh sweat", "Sézane sweat", "Sézane trench"]  # recherches retirées dont on récupère les ventes passées
 FICHIER_RAPPORT = os.path.join(ICI, "docs", "index.html")
 FICHIER_BASE = os.path.join(ICI, "meilleures_ventes.json")  # meilleures ventes, gardées pour de bon (enregistrées dans le dépôt)
+FICHIER_HISTO = os.path.join(ICI, "historique_ventes.json")  # ventes rapides des HISTO_J derniers jours
 FICHIER_BASE_A_ENREGISTRER = os.path.join(ICI, ".base_a_enregistrer")
 DOSSIER_BASE = os.path.join(ICI, "docs", "meilleures")       # page de la base et photos réduites
 DOSSIER_EXPORT = os.path.join(ICI, "docs", "ventes")  # ventes en texte brut, une page par recherche, pour les analyses
@@ -61,6 +62,9 @@ ACHAT_PART = 0.40          # prix d'achat max : 40 % du prix médian vendu…
 ACHAT_MARGE = 30           # … en gardant au moins 30 € de marge
 BASE_PAR_SEMAINE = 5       # meilleures ventes gardées pour de bon, par recherche et par semaine
 BASE_MAX_H = 6             # … parmi celles parties en X heures au plus, au prix médian de leur recherche ou plus
+HISTO_J = 60               # ventes rapides gardées pour reconnaître les modèles sûrs
+MODELE_MIN_VENTES = 3      # modèle sûr : vendu au moins X fois en BASE_MAX_H h au plus…
+MODELE_ECART = 0.25        # … avec au moins 2 ventes sur 3 à ± 25 % du prix médian
 BASE_ENREGISTRER_H = 3     # la base est enregistrée dans le dépôt au plus toutes les X heures
 COPIE_MARQUE = False        # True : copie de chaque vente sur le sujet de sa marque (sujet-marque) en plus du sujet principal
 RESUME_JOUR, RESUME_HEURE = 0, 8  # résumé de la semaine le lundi (0) à partir de 8 h
@@ -687,12 +691,12 @@ def passage():
 
     etat["dernier_passage"] = t0
     ecrire_etat(etat)
-    ecrire_rapport(etat)
-    ecrire_export(etat)
     try:
         maj_base(etat, t0)
     except Exception as e:
         log(f"Base des meilleures ventes : {e}")
+    ecrire_rapport(etat)
+    ecrire_export(etat)
 
 
 # ---------------------------------------------------------------- rapport
@@ -724,7 +728,7 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vue{touch-action:pan-y}.vue p b{font-size:18px}.vue p em{font-style:normal;font-weight:600;background:#2f5d50;border-radius:99px;padding:2px 9px;margin-left:6px;white-space:nowrap}.vue p{color:#fff;margin:0;font-size:14px;text-align:center}
 .vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
-.achat{font-weight:700;color:var(--accent)}
+.achat{font-weight:700;color:var(--accent)}.ventes{display:flex;gap:4px;flex-wrap:wrap}.body .ventes a{margin:0;font-size:12px;font-weight:600;color:var(--ink);background:var(--accent-soft);border-radius:4px;padding:1px 6px}
 .repli summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}.repli summary::-webkit-details-marker{display:none}
 .repli summary h2{margin:0}.repli summary::after{content:"▾ afficher";font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:3px 10px}
 .repli[open] summary::after{content:"▴ masquer"}.repli[open] summary{margin-bottom:8px}
@@ -805,6 +809,11 @@ def ecrire_rapport(etat):
         f"""{''.join(lignes_c) or '<tr><td colspan="4">Pas encore assez de ventes avec leur couleur (au moins 2 par couleur).</td></tr>'}</tbody></table></div>"""
         """<p class="sub">Jusqu’à 4 couleurs par marque, des plus vendues en moins de 24 h aux moins vendues. La couleur est celle indiquée par le vendeur.</p></details></section>""")
 
+    section_modeles = (
+        f"""<section><details class="repli" open><summary><h2>Modèles sûrs ({len(MODELES)})</h2></summary>{html_modeles(MODELES[:24], "meilleures/photos/")}"""
+        f"""{f'<p class="sub"><a href="meilleures/">Voir les {len(MODELES)} modèles sûrs ↗</a></p>' if len(MODELES) > 24 else ''}"""
+        f"""<p class="sub">{texte_modeles()}</p></details></section>""")
+
     maj = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
     page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Ventes suivies</title>
@@ -812,6 +821,7 @@ def ecrire_rapport(etat):
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ventes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>{CSS}</style></head><body><div class="tirer" id="tirer">↓ Tirer pour actualiser</div><div class="wrap">
 <header><div class="haut"><h1>Ventes suivies</h1><div class="boutons"><a href="meilleures/">Meilleures</a><a href="analyses/">Analyses</a><button type="button" id="actualiser">↻ Actualiser</button></div></div><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
 Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vente a été repérée : la vente réelle a eu lieu avant.</p></header>
+{section_modeles}
 {section_cl}
 {section_couleurs}
 <section><details class="repli"><summary><h2>Par recherche</h2></summary><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
@@ -921,6 +931,8 @@ def ecrire_export(etat):
 
 # ---------------------------------------------------------------- base des meilleures ventes
 
+MODELES = []  # modèles sûrs du dernier passage (voir modeles_surs)
+
 def lire_base():
     try:
         with open(FICHIER_BASE, encoding="utf-8") as f:
@@ -996,14 +1008,22 @@ def maj_base(etat, t0):
     for v in garde.values():
         if not v.get("ph"):
             v["ph"] = photo_reduite(v)
+    # Modèles sûrs, d'après l'historique des ventes rapides ; leur photo est gardée comme celles de la base
+    global MODELES
+    histo, histo_change = maj_historique(etat, t0)
+    MODELES = modeles_surs(histo)
+    for m in MODELES:
+        v0 = m["ventes"][0]
+        v0["ph"] = (garde[v0["id"]].get("ph") if v0["id"] in garde else "") or photo_reduite({"id": v0["id"], "photo_url": v0["f"]})
+    log(f"Modèles sûrs : {len(MODELES)}")
     dossier_ph = os.path.join(DOSSIER_BASE, "photos")
     if os.path.isdir(dossier_ph):
-        gardees = {v["ph"] for v in garde.values() if v.get("ph")}
+        gardees = {v["ph"] for v in garde.values() if v.get("ph")} | {m["ventes"][0]["ph"] for m in MODELES if m["ventes"][0].get("ph")}
         for f in os.listdir(dossier_ph):
             if f not in gardees:
                 os.remove(os.path.join(dossier_ph, f))
     base["ventes"] = garde
-    if json.dumps(garde, sort_keys=True) != avant:
+    if json.dumps(garde, sort_keys=True) != avant or histo_change:
         if t0 - (base.get("enregistre") or 0) >= BASE_ENREGISTRER_H * 3600:
             base["enregistre"] = t0
             open(FICHIER_BASE_A_ENREGISTRER, "w").close()  # la tâche GitHub enregistre la base dans le dépôt
@@ -1041,7 +1061,8 @@ def ecrire_page_base(garde, t0):
 <style>__CSS__</style></head><body><div class="wrap">
 <header><div class="haut"><h1>Meilleures ventes</h1><div class="boutons"><a href="../">← Ventes</a><a href="meilleures-ventes.csv" download>Tableur</a></div></div>
 <p class="sub">Gardées pour de bon : chaque semaine, les __N__ ventes les plus rapides de chaque recherche, parties en __H__ h au plus et au prix médian de leur recherche ou plus. Mis à jour le __MAJ__.</p></header>
-<section><div class="outils"><input type="search" id="q" placeholder="Chercher (modèle, marque, couleur, taille…)" aria-label="Chercher" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+<section><details class="repli" open><summary><h2>Modèles sûrs (__NM__)</h2></summary>__MODELES__<p class="sub">__TM__</p></details></section>
+<section><h2>Toutes les meilleures ventes</h2><div class="outils"><input type="search" id="q" placeholder="Chercher (modèle, marque, couleur, taille…)" aria-label="Chercher" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
 <select id="m" aria-label="Marque"></select><select id="r" aria-label="Recherche"></select>
 <select id="o" aria-label="Tri"><option value="v">Plus récentes</option><option value="h">Plus rapides</option><option value="p">Plus chères</option><option value="l">Plus aimées</option></select></div>
 <p class="compte" id="n"></p><div class="grid" id="grid"></div><button type="button" class="plus" id="plus" hidden>Afficher plus</button></section></div>
@@ -1069,9 +1090,165 @@ n.textContent=L.length+' vente'+(L.length>1?'s':'')+(L.length?'':' : rien ne cor
 [q,m,r,o].forEach(function(e){e.addEventListener(e===q?'input':'change',function(){lim=120;rendu()})});
 plus.onclick=function(){lim+=120;rendu()};rendu()})();</script></body></html>"""
     page = (page.replace("__CSS__", CSS + "\n" + CSS_BASE).replace("__N__", str(BASE_PAR_SEMAINE)).replace("__H__", str(BASE_MAX_H))
-            .replace("__MAJ__", maj).replace("__DATA__", json.dumps(donnees, ensure_ascii=False).replace("</", "<\\/")))
+            .replace("__MAJ__", maj).replace("__NM__", str(len(MODELES))).replace("__MODELES__", html_modeles(MODELES, "photos/")).replace("__TM__", html.escape(texte_modeles())).replace("__DATA__", json.dumps(donnees, ensure_ascii=False).replace("</", "<\\/")))
     with open(os.path.join(DOSSIER_BASE, "index.html"), "w", encoding="utf-8") as f:
         f.write(page)
+
+
+# ---------------------------------------------------------------- modèles sûrs
+
+# Mots qui ne désignent pas un modèle : vêtements, couleurs, matières, tailles, états (plusieurs langues)
+MOTS_COMMUNS = set("""
+gilet gilets pull pulls pullover pullovers sweat sweatshirt hoodie hoody veste vestes vest vestje weste westen jas jasje jacket jacke jackets giacca giubbotto chaqueta chaleco
+manteau manteaux mantel coat cappotto abrigo jassen parka parkas doudoune doudounes puffer down steppjacke daunenjacke piumino plumifero blouson bomber bomberjacke
+trench imper impermeable caban duffle cardigan cardigans strickjacke jersey jumper sweater maglione maglia trui pulli winterpulli robe robes dress kleid vestido jurk
+jupe skirt rock gonna falda rok pantalon pantalons pants hose jean jeans denim short shorts chemise chemisier blouse bluse camisa camicia shirt overhemd body top tee
+tshirt t-shirt debardeur polo polaire polaires fleece fleecejacke sherpa teddy peluche moumoute fourrure fausse faux fur borg combinaison ensemble tailleur costume blazer
+sans manche manches mouwloos sleeveless zip zippe zippee zippe zipper half quart capuche hood capuchon col montant roule rond boutons bouton noeuds noeud brode brodee
+laine wool wolle lana wol cachemire cashmere kaschmir mohair alpaga alpaca yack yak merinos merino coton cotton baumwolle lin linen leinen soie silk cuir leather leder
+lederjacke daim suede wildleder velours corduroy tweed maille tricot knit knitted gebreid ajoure ajouree cotele bouclette boucle matelasse matelassee quilted doublee
+noir noire black schwarz schwarzer nero negro zwart blanc blanche white weiss weiß bianco blanco wit ecru creme beige camel marron brown braun brun chocolat taupe
+gris grise grey gray grau grigio grijs anthracite bleu bleue blue blau blu azul blauw marine navy ciel rouge red rot rosso rood rose pink rosa roze vert verte green
+grun gruen verde groen kaki khaki olive jaune yellow orange violet lila lilas mauve parme bordeaux brique moutarde multicolore chine chinee raye rayee rayures carreaux
+taille size talla tg grosse gr maat xxs xs xl xxl femme femmes homme hommes women woman men damen herren dames donna mujer unisexe enfant fille garcon
+neuf neuve etiquette etat tres bon bonne excellent parfait parfaite comme new top zustand nauwelijks gedragen worn porte portee peu jamais vintage oversize oversized
+ample long longue court courte mi-long cintre droit fluide leger legere chaud chaude epais hiver winter ete printemps automne collection modele model style classic
+classique basique magnifique superbe joli jolie belle beau avec pour sur the and von mit und van een les des une pas tres ou et en de du la le
+logo motif matiere dark light bright lot pieces piece small medium large petit grand regular slim fit loose crop cropped
+""".split())
+
+
+def _nz(t):
+    return unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode().lower()
+
+
+def mots_modele(titre, exclus):
+    """Mots du titre qui peuvent être un nom de modèle (écrits avec une majuscule)."""
+    out = []
+    for m in re.findall(r"[A-Za-zÀ-ÿ]{3,}", titre or ""):
+        k = _nz(m)
+        if k in MOTS_COMMUNS or k in exclus or not m[0].isupper():
+            continue
+        out.append(cle_modele(k))
+    return out
+
+
+def cle_modele(k):
+    """Rapproche les orthographes d'un même nom (Émile, Emil, Emile ; Hooktown, Hoktown)."""
+    k = re.sub(r"(.)\1+", r"\1", k)
+    return k[:-1] if len(k) > 4 and k.endswith("e") else k
+
+
+def type_vetement(titres):
+    """Le type de vêtement le plus cité (gilet, pull…), pour nommer le modèle."""
+    noms = {"gilet": "gilet", "cardigan": "gilet", "strickjacke": "gilet", "pull": "pull", "pullover": "pull", "sweat": "sweat",
+            "veste": "veste", "jacket": "veste", "jacke": "veste", "giacca": "veste", "manteau": "manteau", "mantel": "manteau",
+            "coat": "manteau", "cappotto": "manteau", "parka": "parka", "doudoune": "doudoune", "puffer": "doudoune", "trench": "trench",
+            "blazer": "blazer", "robe": "robe", "jupe": "jupe", "pantalon": "pantalon", "chemise": "chemise", "blouse": "blouse",
+            "polaire": "polaire", "fleece": "polaire", "weste": "gilet sans manches", "vest": "gilet sans manches"}
+    c = {}
+    for t in titres:
+        for m in re.findall(r"[a-z]+", _nz(t)):
+            if m in noms:
+                c[noms[m]] = c.get(noms[m], 0) + 1
+                break
+    return max(c, key=c.get) if c else ""
+
+
+def maj_historique(etat, t0):
+    """Toutes les ventes rapides des HISTO_J derniers jours (sans photo enregistrée), pour reconnaître les modèles sûrs."""
+    try:
+        with open(FICHIER_HISTO, encoding="utf-8") as f:
+            histo = json.load(f)
+    except (OSError, ValueError):
+        histo = {}
+    avant = len(histo), max((v["v"] for v in histo.values()), default=0)
+    for a in etat["annonces"].values():
+        if a["statut"] != "vendu" or not a.get("publie") or not a.get("vendu_vu") or a["prix"] is None or a["id"] in histo:
+            continue
+        h = heures(a["publie"], a["vendu_vu"])
+        if h is None or h > BASE_MAX_H:
+            continue
+        histo[a["id"]] = {"r": a["recherche"], "m": (a["marque"] or "").strip(), "t": " ".join(a["titre"].split()), "p": a["prix"],
+                          "h": round(h, 2), "v": a["vendu_vu"], "s": a["taille"] or "", "u": a["url"].split("?")[0], "f": a["photo"] or ""}
+    limite = t0 - HISTO_J * 86400
+    histo = {i: v for i, v in histo.items() if v["v"] >= limite}
+    change = (len(histo), max((v["v"] for v in histo.values()), default=0)) != avant
+    if change:
+        with open(FICHIER_HISTO, "w", encoding="utf-8") as f:
+            json.dump(histo, f, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return histo, change
+
+
+def modeles_surs(histo):
+    """Modèles vendus au moins MODELE_MIN_VENTES fois en BASE_MAX_H h au plus, à un prix régulier."""
+    par_marque = {}
+    for i, v in histo.items():
+        par_marque.setdefault(v["m"] or v["r"], []).append(dict(v, id=i))
+    out = []
+    for marque, lst in par_marque.items():
+        exclus = set(re.findall(r"[a-z]+", _nz(marque + " " + " ".join({v["r"] for v in lst}))))
+        compte = {}
+        for v in lst:
+            v["_mots"] = list(dict.fromkeys(mots_modele(v["t"], exclus)))
+            for k in v["_mots"]:
+                compte[k] = compte.get(k, 0) + 1
+        groupes = {}
+        for v in lst:
+            if v["_mots"]:
+                k = max(v["_mots"], key=lambda k: (compte[k], k))
+                groupes.setdefault(k, []).append(v)
+        for k, g in groupes.items():
+            if len(g) < MODELE_MIN_VENTES:
+                continue
+            px = sorted(v["p"] for v in g)
+            med = statistics.median(px)
+            reguliers = sum(1 for p in px if abs(p - med) <= MODELE_ECART * med)
+            if reguliers < 2 / 3 * len(g):
+                continue
+            g.sort(key=lambda v: v["v"], reverse=True)
+            formes = [m for v in g for m in re.findall(r"[A-Za-zÀ-ÿ]{3,}", v["t"]) if m[0].isupper() and cle_modele(_nz(m)) == k]
+            nom = max(set(formes), key=formes.count) if formes else k.title()
+            out.append({"marque": marque, "nom": nom, "type": type_vetement(v["t"] for v in g), "n": len(g), "median": med,
+                        "min": px[0], "max": px[-1], "achat": prix_achat_max(med), "delai": statistics.median(v["h"] for v in g),
+                        "dernier": g[0]["v"], "ventes": g[:4]})
+    out.sort(key=lambda m: (m["n"], -m["delai"], m["median"]), reverse=True)
+    return out
+
+
+def html_modeles(modeles, chemin_photos):
+    """Cartes « Modèles sûrs » : photo, revente médiane, achat max, nombre de ventes rapides, délai médian."""
+    paris = ZoneInfo("Europe/Paris")
+    cartes = []
+    for m in modeles:
+        v0 = m["ventes"][0]
+        src = (chemin_photos + v0["ph"]) if v0.get("ph") else v0["f"]
+        fu = f' data-fu="{html.escape(v0["f"])}"' if v0.get("ph") and v0["f"] else ""
+        img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(src)}"{fu} '
+               'onerror="if(this.dataset.fu&&this.src!==this.dataset.fu){this.src=this.dataset.fu}else{this.replaceWith(\'Photo expirée\')}">') if src else "Pas de photo"
+        cherche = f"{BASE or 'https://www.vinted.fr'}/catalog?" + urlencode({"search_text": f"{m['marque']} {m['nom']}", "order": "newest_first"})
+        vig = "".join(f'<a href="{html.escape(v["u"])}" target="_blank" rel="noopener" title="{html.escape(v["t"])} · {fmt_prix(v["p"])} · ≤ {fmt_h(v["h"])}">{fmt_prix(v["p"])}</a>'
+                      for v in m["ventes"])
+        nom = f"{m['type'].capitalize() + ' ' if m['type'] else ''}{m['nom']}"
+        cartes.append(
+            f'<article class="card" data-m="{html.escape(m["marque"])}"><div class="ph"><a href="{html.escape(cherche)}" target="_blank" rel="noopener" style="display:contents">{img}</a>'
+            f'<span class="b d hot">{m["n"]} ventes ≤ {BASE_MAX_H} h</span><span class="b p">{fmt_prix(m["median"])}</span></div>'
+            f'<div class="body"><span class="m">{html.escape(m["marque"])}</span><span class="t">{html.escape(nom)}</span>'
+            f'<span class="achat">Achat max ≤ {fmt_prix(round(m["achat"]))}</span>'
+            f'<span class="m">Revente {fmt_prix(m["min"])} à {fmt_prix(m["max"])} · délai médian {fmt_h(m["delai"])}</span>'
+            f'<span class="m">Dernière vente le {datetime.fromtimestamp(m["dernier"], paris).strftime("%d/%m")}</span>'
+            f'<span class="ventes">{vig}</span>'
+            f'<a href="{html.escape(cherche)}" target="_blank" rel="noopener">Chercher sur Vinted ↗</a></div></article>')
+    if not cartes:
+        return f'<p class="sub">Pas encore de modèle sûr : il en faut un vendu au moins {MODELE_MIN_VENTES} fois en {BASE_MAX_H} h au plus, à un prix régulier.</p>'
+    return f'<div class="grid">{"".join(cartes)}</div>'
+
+
+def texte_modeles():
+    return (f"Modèles vendus au moins {MODELE_MIN_VENTES} fois en {BASE_MAX_H} h au plus sur les {HISTO_J} derniers jours, "
+            f"avec au moins 2 ventes sur 3 à ± {MODELE_ECART * 100:.0f} % du prix médian. Le modèle est reconnu par son nom dans le titre "
+            f"(ex. Othello, Hoktown). Achat max : {ACHAT_PART * 100:.0f} % du prix médian, avec au moins {ACHAT_MARGE} € de marge. "
+            f"Les montants sous la carte sont les dernières ventes.")
 
 
 # ---------------------------------------------------------------- test
