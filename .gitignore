@@ -3,3 +3,6 @@ etat.json
 docs/index.html
 __pycache__/
 docs/ventes/
+docs/meilleures/index.html
+docs/meilleures/meilleures-ventes.csv
+.base_a_enregistrer

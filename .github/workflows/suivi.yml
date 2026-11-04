@@ -14,7 +14,7 @@ on:
         default: suivi
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
   actions: write
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install requests beautifulsoup4
+      - run: pip install requests beautifulsoup4 pillow
 
       # Mémoire d'avant le retrait des recherches Ba&sh/Sézane en double (#16), pour en remettre les ventes
       - name: Mémoire ancienne (lecture)
@@ -62,6 +62,18 @@ jobs:
           else
             python suivi.py --boucle 2
           fi
+
+      # Meilleures ventes : enregistrées dans le dépôt (au plus toutes les 3 h) pour être gardées pour de bon
+      - name: Enregistrer les meilleures ventes
+        if: ${{ !cancelled() && github.event.inputs.mode != 'test' && hashFiles('.base_a_enregistrer') != '' }}
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898233+github-actions[bot]@users.noreply.github.com"
+          git add -A meilleures_ventes.json docs/meilleures/photos
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -q -m "Meilleures ventes : mise à jour"
+          for k in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && break; sleep 5; done
 
       - name: Mémoire du suivi (écriture)
         if: ${{ !cancelled() && github.event.inputs.mode != 'test' && hashFiles('etat.json') != '' }}

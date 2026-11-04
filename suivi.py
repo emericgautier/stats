@@ -5,12 +5,15 @@ Chaque passage :
   2. ajoute au suivi les nouvelles annonces de chaque recherche ;
   3. revérifie les annonces suivies qui ont disparu des résultats ;
   4. envoie une notification ntfy pour chaque vente rapide ;
-  5. régénère docs/index.html.
+  5. régénère docs/index.html ;
+  6. garde les meilleures ventes pour de bon (meilleures_ventes.json, page docs/meilleures/).
 
 Aucune connexion à un compte : seulement des pages publiques.
 """
 
+import csv
 import html
+import io
 import json
 import os
 import random
@@ -35,6 +38,9 @@ FICHIER_ETAT = os.path.join(ICI, "etat.json")
 FICHIER_ETAT_ANCIEN = os.path.join(ICI, "etat_ancien.json")  # mémoire d'avant le retrait de recherches, relue une seule fois
 RESTAURER = ["Ba&sh sweat", "Sézane sweat", "Sézane trench"]  # recherches retirées dont on récupère les ventes passées
 FICHIER_RAPPORT = os.path.join(ICI, "docs", "index.html")
+FICHIER_BASE = os.path.join(ICI, "meilleures_ventes.json")  # meilleures ventes, gardées pour de bon (enregistrées dans le dépôt)
+FICHIER_BASE_A_ENREGISTRER = os.path.join(ICI, ".base_a_enregistrer")
+DOSSIER_BASE = os.path.join(ICI, "docs", "meilleures")       # page de la base et photos réduites
 DOSSIER_EXPORT = os.path.join(ICI, "docs", "ventes")  # ventes en texte brut, une page par recherche, pour les analyses
 EXPORT_LIGNES = 120         # ventes par fichier texte (pages courtes, lisibles d'un coup)
 
@@ -53,6 +59,9 @@ CLASSEMENT_J = 7           # période du classement de la semaine
 CLASSEMENT_MIN_VENTES = 3  # ventes minimum pour qu'une recherche soit classée
 ACHAT_PART = 0.40          # prix d'achat max : 40 % du prix médian vendu…
 ACHAT_MARGE = 30           # … en gardant au moins 30 € de marge
+BASE_PAR_SEMAINE = 5       # meilleures ventes gardées pour de bon, par recherche et par semaine
+BASE_MAX_H = 6             # … parmi celles parties en X heures au plus, au prix médian de leur recherche ou plus
+BASE_ENREGISTRER_H = 3     # la base est enregistrée dans le dépôt au plus toutes les X heures
 COPIE_MARQUE = False        # True : copie de chaque vente sur le sujet de sa marque (sujet-marque) en plus du sujet principal
 RESUME_JOUR, RESUME_HEURE = 0, 8  # résumé de la semaine le lundi (0) à partir de 8 h
 
@@ -680,11 +689,15 @@ def passage():
     ecrire_etat(etat)
     ecrire_rapport(etat)
     ecrire_export(etat)
+    try:
+        maj_base(etat, t0)
+    except Exception as e:
+        log(f"Base des meilleures ventes : {e}")
 
 
 # ---------------------------------------------------------------- rapport
 
-CSS = """.haut{display:flex;align-items:center;justify-content:space-between;gap:12px}.tirer{position:fixed;top:0;left:50%;transform:translate(-50%,-48px);z-index:5;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:6px 12px;pointer-events:none}.boutons{display:flex;gap:8px}.boutons a{font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:8px 14px;text-decoration:none}.haut button{font:inherit;font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:0;border-radius:99px;padding:8px 14px;cursor:pointer}
+CSS = """.haut{display:flex;align-items:center;justify-content:space-between;gap:12px}.tirer{position:fixed;top:0;left:50%;transform:translate(-50%,-48px);z-index:5;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:6px 12px;pointer-events:none}.boutons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.boutons a{font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:8px 14px;text-decoration:none}.haut button{font:inherit;font-size:14px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:0;border-radius:99px;padding:8px 14px;cursor:pointer}
 :root{--bg:#f6f6f3;--surface:#fff;--ink:#1d2120;--muted:#646b68;--line:#dfe1dc;--accent:#2f5d50;--accent-soft:#e3ece8;--hot:#9a3b12;color-scheme:light}
 @media (prefers-color-scheme:dark){:root{--bg:#141716;--surface:#1d2120;--ink:#ecefec;--muted:#9aa29e;--line:#2e3431;--accent:#8cc2ad;--accent-soft:#22312b;--hot:#e3a06a;color-scheme:dark}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,sans-serif;padding:max(28px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
@@ -797,7 +810,7 @@ def ecrire_rapport(etat):
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Ventes suivies</title>
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icone-180.png"><meta name="theme-color" content="#2f5d50">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Ventes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>{CSS}</style></head><body><div class="tirer" id="tirer">↓ Tirer pour actualiser</div><div class="wrap">
-<header><div class="haut"><h1>Ventes suivies</h1><div class="boutons"><a href="analyses/">Analyses</a><button type="button" id="actualiser">↻ Actualiser</button></div></div><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
+<header><div class="haut"><h1>Ventes suivies</h1><div class="boutons"><a href="meilleures/">Meilleures</a><a href="analyses/">Analyses</a><button type="button" id="actualiser">↻ Actualiser</button></div></div><p class="sub">Mis à jour le {maj}. Une annonce est suivie pendant {FENETRE_SUIVI_H} h après sa publication.
 Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vente a été repérée : la vente réelle a eu lieu avant.</p></header>
 {section_cl}
 {section_couleurs}
@@ -904,6 +917,161 @@ def ecrire_export(etat):
         sommaire.append(f"{nom} ({len(lst)}) : {' '.join(fichiers)}")
     with open(os.path.join(DOSSIER_EXPORT, "index.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(sommaire) + "\n")
+
+
+# ---------------------------------------------------------------- base des meilleures ventes
+
+def lire_base():
+    try:
+        with open(FICHIER_BASE, encoding="utf-8") as f:
+            b = json.load(f)
+        b.setdefault("ventes", {})
+        return b
+    except (OSError, ValueError):
+        return {"ventes": {}, "enregistre": 0}
+
+
+def semaine_de(ts):
+    return datetime.fromtimestamp(ts, ZoneInfo("Europe/Paris")).strftime("%G-%V")
+
+
+def photo_reduite(v):
+    """Garde la photo en petit dans le dépôt : les liens de photo Vinted finissent par expirer."""
+    nom = f"{v['id']}.jpg"
+    chemin = os.path.join(DOSSIER_BASE, "photos", nom)
+    if os.path.exists(chemin):
+        return nom
+    if not v.get("photo_url"):
+        return ""
+    try:
+        from PIL import Image
+        r = session.get(v["photo_url"], timeout=20)
+        r.raise_for_status()
+        im = Image.open(io.BytesIO(r.content)).convert("RGB")
+        im.thumbnail((300, 400))
+        os.makedirs(os.path.dirname(chemin), exist_ok=True)
+        im.save(chemin, "JPEG", quality=72, optimize=True, progressive=True)
+        return nom
+    except Exception as e:
+        log(f"   photo {v['id']} : {e}")
+        return ""
+
+
+def maj_base(etat, t0):
+    """Ajoute à la base les meilleures ventes du moment et garde, par recherche et par semaine, les plus rapides."""
+    base = lire_base()
+    avant = json.dumps(base["ventes"], sort_keys=True)
+    ventes = base["ventes"]
+    vendus = [a for a in etat["annonces"].values()
+              if a["statut"] == "vendu" and a.get("publie") and a.get("vendu_vu") and a["prix"] is not None]
+    par = {}
+    for a in vendus:
+        par.setdefault(a["recherche"], []).append(a["prix"])
+    med = {k: statistics.median(v) for k, v in par.items()}
+    for a in vendus:
+        h = heures(a["publie"], a["vendu_vu"])
+        if h is None or h > BASE_MAX_H or a["prix"] < med[a["recherche"]]:
+            continue
+        v = ventes.get(a["id"])
+        if v:
+            if a.get("couleur"):
+                v["couleur"] = a["couleur"]
+            continue
+        ventes[a["id"]] = {
+            "id": a["id"], "recherche": a["recherche"], "marque": (a["marque"] or "").strip(), "titre": " ".join(a["titre"].split()),
+            "prix": a["prix"], "taille": a["taille"] or "", "couleur": a.get("couleur") or "", "etat": a["etat_article"] or "",
+            "likes": a.get("likes") or 0, "delai_h": round(h, 2), "publie": a["publie"], "vendu": a["vendu_vu"],
+            "semaine": semaine_de(a["vendu_vu"]), "median": med[a["recherche"]],
+            "url": a["url"].split("?")[0], "photo_url": a["photo"] or "", "ph": "",
+        }
+    # Par recherche et par semaine : les plus rapides, puis les plus chères
+    groupes = {}
+    for v in ventes.values():
+        groupes.setdefault((v["recherche"], v["semaine"]), []).append(v)
+    garde = {}
+    for lst in groupes.values():
+        lst.sort(key=lambda v: (v["delai_h"], -v["prix"], -(v.get("likes") or 0)))
+        for v in lst[:BASE_PAR_SEMAINE]:
+            garde[v["id"]] = v
+    for v in garde.values():
+        if not v.get("ph"):
+            v["ph"] = photo_reduite(v)
+    dossier_ph = os.path.join(DOSSIER_BASE, "photos")
+    if os.path.isdir(dossier_ph):
+        gardees = {v["ph"] for v in garde.values() if v.get("ph")}
+        for f in os.listdir(dossier_ph):
+            if f not in gardees:
+                os.remove(os.path.join(dossier_ph, f))
+    base["ventes"] = garde
+    if json.dumps(garde, sort_keys=True) != avant:
+        if t0 - (base.get("enregistre") or 0) >= BASE_ENREGISTRER_H * 3600:
+            base["enregistre"] = t0
+            open(FICHIER_BASE_A_ENREGISTRER, "w").close()  # la tâche GitHub enregistre la base dans le dépôt
+        with open(FICHIER_BASE, "w", encoding="utf-8") as f:
+            json.dump(base, f, ensure_ascii=False, indent=0, sort_keys=True)
+    log(f"Base des meilleures ventes : {len(garde)} ventes")
+    ecrire_page_base(garde, t0)
+
+
+CSS_BASE = """.outils{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.outils input,.outils select{flex:1 1 200px;min-width:0;font:600 16px system-ui;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+.outils input{flex-basis:100%}.compte{color:var(--muted);font-size:14px;margin:0 0 10px}.plus{display:block;margin:16px auto 0;font:600 15px system-ui;color:var(--accent);background:var(--accent-soft);border:0;border-radius:99px;padding:10px 20px;cursor:pointer}
+.ph a{display:contents}"""
+
+
+def ecrire_page_base(garde, t0):
+    paris = ZoneInfo("Europe/Paris")
+    lst = sorted(garde.values(), key=lambda v: v["vendu"], reverse=True)
+    donnees = [{
+        "i": v["id"], "r": v["recherche"], "m": v["marque"], "t": v["titre"], "p": v["prix"], "s": v["taille"], "c": v.get("couleur") or "",
+        "e": v["etat"], "l": v.get("likes") or 0, "h": fmt_h(v["delai_h"]), "hn": v["delai_h"], "v": v["vendu"],
+        "d": datetime.fromtimestamp(v["vendu"], paris).strftime("%d/%m/%Y"), "px": fmt_prix(v["prix"]),
+        "a": fmt_prix(round(prix_achat_max(v["prix"]))), "u": v["url"], "f": ("photos/" + v["ph"]) if v.get("ph") else "", "fu": v.get("photo_url") or "",
+    } for v in lst]
+    # Export tableur
+    os.makedirs(DOSSIER_BASE, exist_ok=True)
+    with open(os.path.join(DOSSIER_BASE, "meilleures-ventes.csv"), "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f, delimiter=";")
+        w.writerow(["Vendue le", "Recherche", "Marque", "Titre", "Prix", "Délai", "Taille", "Couleur", "État", "Likes", "Achat max", "Annonce"])
+        for d in donnees:
+            w.writerow([d["d"], d["r"], d["m"], d["t"], d["px"], d["h"], d["s"], d["c"], d["e"], d["l"], d["a"], d["u"]])
+    maj = datetime.fromtimestamp(t0, paris).strftime("%d/%m/%Y à %H:%M")
+    page = """<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Meilleures ventes</title>
+<link rel="manifest" href="../manifest.json"><link rel="apple-touch-icon" href="../icone-180.png"><meta name="theme-color" content="#2f5d50">
+<style>__CSS__</style></head><body><div class="wrap">
+<header><div class="haut"><h1>Meilleures ventes</h1><div class="boutons"><a href="../">← Ventes</a><a href="meilleures-ventes.csv" download>Tableur</a></div></div>
+<p class="sub">Gardées pour de bon : chaque semaine, les __N__ ventes les plus rapides de chaque recherche, parties en __H__ h au plus et au prix médian de leur recherche ou plus. Mis à jour le __MAJ__.</p></header>
+<section><div class="outils"><input type="search" id="q" placeholder="Chercher (modèle, marque, couleur, taille…)" aria-label="Chercher" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+<select id="m" aria-label="Marque"></select><select id="r" aria-label="Recherche"></select>
+<select id="o" aria-label="Tri"><option value="v">Plus récentes</option><option value="h">Plus rapides</option><option value="p">Plus chères</option><option value="l">Plus aimées</option></select></div>
+<p class="compte" id="n"></p><div class="grid" id="grid"></div><button type="button" class="plus" id="plus" hidden>Afficher plus</button></section></div>
+<script>var D=__DATA__;
+(function(){var g=document.getElementById('grid'),q=document.getElementById('q'),m=document.getElementById('m'),r=document.getElementById('r'),o=document.getElementById('o'),n=document.getElementById('n'),plus=document.getElementById('plus'),lim=120;
+function nz(x){return (x||'').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')}
+function remplir(s,tous,cle){var c={};D.forEach(function(d){if(d[cle])c[d[cle]]=(c[d[cle]]||0)+1});
+var o0=document.createElement('option');o0.value='';o0.textContent=tous+' ('+D.length+')';s.appendChild(o0);
+Object.keys(c).sort(function(a,b){return a.localeCompare(b,'fr')}).forEach(function(k){var e=document.createElement('option');e.value=k;e.textContent=k+' ('+c[k]+')';s.appendChild(e)})}
+remplir(m,'Toutes les marques','m');remplir(r,'Toutes les recherches','r');
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function carte(d){var a=el('article','card'),ph=el('div','ph'),lien=el('a');lien.href=d.u;lien.target='_blank';lien.rel='noopener';
+var src=d.f||d.fu;if(src){var im=el('img');im.loading='lazy';im.referrerPolicy='no-referrer';im.alt='';im.src=src;
+im.onerror=function(){if(d.f&&d.fu&&im.src.indexOf(d.f)>=0){im.src=d.fu}else{im.replaceWith('Pas de photo')}};lien.appendChild(im)}else lien.textContent='Pas de photo';
+ph.appendChild(lien);var b=el('span','b d'+(d.hn<=2?' hot':''),'≤ '+d.h);ph.appendChild(b);ph.appendChild(el('span','b p',d.px));
+var bd=el('div','body');bd.appendChild(el('span','m',d.r));bd.appendChild(el('span','t',d.t));
+bd.appendChild(el('span','m',[d.m,d.s,d.c,d.e].filter(Boolean).join(' · ')+(d.l?' · ♥ '+d.l:'')));
+bd.appendChild(el('span','m','Vendue le '+d.d));bd.appendChild(el('span','achat','Achat max ≤ '+d.a));
+var v=el('a',null,'Voir l’annonce ↗');v.href=d.u;v.target='_blank';v.rel='noopener';bd.appendChild(v);a.append(ph,bd);return a}
+function rendu(){var t=nz(q.value).split(/\\s+/).filter(Boolean),L=D.filter(function(d){if(m.value&&d.m!==m.value)return false;if(r.value&&d.r!==r.value)return false;
+var txt=nz([d.t,d.m,d.r,d.c,d.s,d.e].join(' '));return t.every(function(w){return txt.indexOf(w)>=0})});
+var k=o.value;L.sort(function(a,b){return k==='h'?a.hn-b.hn||b.p-a.p:k==='p'?b.p-a.p:k==='l'?b.l-a.l:b.v-a.v});
+g.innerHTML='';L.slice(0,lim).forEach(function(d){g.appendChild(carte(d))});
+n.textContent=L.length+' vente'+(L.length>1?'s':'')+(L.length?'':' : rien ne correspond');plus.hidden=L.length<=lim}
+[q,m,r,o].forEach(function(e){e.addEventListener(e===q?'input':'change',function(){lim=120;rendu()})});
+plus.onclick=function(){lim+=120;rendu()};rendu()})();</script></body></html>"""
+    page = (page.replace("__CSS__", CSS + "\n" + CSS_BASE).replace("__N__", str(BASE_PAR_SEMAINE)).replace("__H__", str(BASE_MAX_H))
+            .replace("__MAJ__", maj).replace("__DATA__", json.dumps(donnees, ensure_ascii=False).replace("</", "<\\/")))
+    with open(os.path.join(DOSSIER_BASE, "index.html"), "w", encoding="utf-8") as f:
+        f.write(page)
 
 
 # ---------------------------------------------------------------- test
