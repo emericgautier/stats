@@ -870,6 +870,35 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}}"""
 
 
+# Garde la page telle qu'on l'a laissée (menu marque, sections ouvertes, défilement, photo ouverte)
+# quand on revient de Vinted ou qu'elle se recharge toute seule.
+SCRIPT_ETAT = """<script>(function(){var K='page_etat',c=document.getElementById('f'),v=document.getElementById('vue'),pret=false;
+try{history.scrollRestoration='manual'}catch(e){}
+function base(o){return o?o.textContent.replace(/\\s*\\(\\d+\\)$/,''):''}
+function sections(){return [].map.call(document.querySelectorAll('details.repli'),function(d){return d.querySelector('summary').textContent.replace(/\\s*\\(\\d+\\)$/,'')})}
+function repere(){var L=document.querySelectorAll('.card:not([hidden]):not(.masq) img[data-u]');
+for(var i=0;i<L.length;i++){var r=L[i].closest('.card').getBoundingClientRect();if(r.bottom>0&&r.height)return {u:L[i].dataset.u,y:r.top}}return null}
+function garder(){if(!pret)return;var d=document.querySelectorAll('details.repli'),n=sections(),o=[];
+d.forEach(function(x,i){if(x.open)o.push(n[i])});
+var e={t:Date.now(),m:c&&!c.hidden?base(c.options[c.selectedIndex]):'',o:o,y:window.scrollY,a:repere(),v:v&&!v.hidden?v.querySelector('a').getAttribute('href'):''};
+try{localStorage.setItem(K,JSON.stringify(e))}catch(x){}}
+function trouver(u){var L=document.querySelectorAll('img[data-u]');for(var i=0;i<L.length;i++)if(L[i].dataset.u===u)return L[i];return null}
+function placer(e){var x=e.a&&trouver(e.a.u),c2=x&&x.closest('.card');
+if(c2&&!c2.hidden&&!c2.classList.contains('masq'))window.scrollTo(0,window.scrollY+c2.getBoundingClientRect().top-e.a.y);else window.scrollTo(0,e.y||0)}
+var e=null;try{e=JSON.parse(localStorage.getItem(K)||'null')}catch(x){}
+if(e){if(c&&!c.hidden&&e.m){for(var i=0;i<c.options.length;i++)if(base(c.options[i])===e.m){c.value=c.options[i].value;c.onchange&&c.onchange();c.dispatchEvent(new Event('change'));break}}
+var n=sections();document.querySelectorAll('details.repli').forEach(function(d,i){d.open=(e.o||[]).indexOf(n[i])>=0});
+// Défilement et photo ouverte : seulement si on revient dans les 6 heures
+if(Date.now()-e.t<6*3600e3){placer(e);requestAnimationFrame(function(){placer(e)});setTimeout(function(){placer(e)},400);
+if(e.v){var im=trouver(e.v);if(im)im.click()}}}
+pret=true;var tm=null;
+window.addEventListener('scroll',function(){clearTimeout(tm);tm=setTimeout(garder,250)},{passive:true});
+document.addEventListener('change',garder);document.addEventListener('click',function(){setTimeout(garder,0)});
+document.querySelectorAll('details.repli').forEach(function(d){d.addEventListener('toggle',garder)});
+document.addEventListener('visibilitychange',function(){if(document.hidden)garder()});
+window.addEventListener('pagehide',garder)})();</script>"""
+
+
 def ecrire_rapport(etat):
     ann = list(etat["annonces"].values())
     t0 = etat.get("dernier_passage") or maintenant()
@@ -1028,7 +1057,7 @@ function poser(d){{ind.style.transform='translate(-50%,'+(Math.min(d,SEUIL+20)-4
 document.addEventListener('touchstart',function(e){{y0=(window.scrollY<=0&&document.getElementById('vue').hidden)?e.touches[0].clientY:null;dy=0}},{{passive:true}});
 document.addEventListener('touchmove',function(e){{if(y0===null)return;dy=e.touches[0].clientY-y0;if(dy>0)poser(dy)}},{{passive:true}});
 document.addEventListener('touchend',function(){{if(y0===null)return;y0=null;if(dy>=SEUIL){{ind.textContent='↻ Actualisation…';recharger()}}else poser(0)}});
-document.addEventListener('visibilitychange',function(){{if(!document.hidden&&Date.now()-t0>120000)recharger()}})}})();</script></body></html>"""
+document.addEventListener('visibilitychange',function(){{if(!document.hidden&&Date.now()-t0>120000)recharger()}})}})();</script>{SCRIPT_ETAT}</body></html>"""
     os.makedirs(os.path.dirname(FICHIER_RAPPORT), exist_ok=True)
     with open(FICHIER_RAPPORT, "w", encoding="utf-8") as f:
         f.write(page)
@@ -1281,7 +1310,17 @@ var k=o.value;L.sort(function(a,b){return k==='h'?a.hn-b.hn||b.p-a.p:k==='p'?b.p
 g.innerHTML='';L.slice(0,lim).forEach(function(d){g.appendChild(carte(d))});
 n.textContent=L.length+' vente'+(L.length>1?'s':'')+(L.length?'':' : rien ne correspond');plus.hidden=L.length<=lim}
 [q,m,r,o].forEach(function(e){e.addEventListener(e===q?'input':'change',function(){lim=120;rendu()})});
-plus.onclick=function(){lim+=120;rendu()};rendu()})();</script></body></html>"""
+plus.onclick=function(){lim+=120;rendu();garder()};
+// Garde la recherche, les menus et le défilement quand on revient sur la page
+var K='meilleures_etat',pret=false;try{history.scrollRestoration='manual'}catch(x){}
+function garder(){if(!pret)return;try{localStorage.setItem(K,JSON.stringify({t:Date.now(),q:q.value,m:m.value,r:r.value,o:o.value,lim:lim,y:window.scrollY}))}catch(x){}}
+var e=null;try{e=JSON.parse(localStorage.getItem(K)||'null')}catch(x){}
+function ok(s,v){return [].some.call(s.options,function(x){return x.value===v})}
+if(e){q.value=e.q||'';if(ok(m,e.m))m.value=e.m;if(ok(r,e.r))r.value=e.r;if(ok(o,e.o))o.value=e.o;lim=Math.max(120,+e.lim||120)}
+rendu();if(e&&Date.now()-e.t<6*3600e3){var y=e.y||0;window.scrollTo(0,y);setTimeout(function(){window.scrollTo(0,y)},400)}
+pret=true;var tm=null;window.addEventListener('scroll',function(){clearTimeout(tm);tm=setTimeout(garder,250)},{passive:true});
+[q,m,r,o].forEach(function(x){x.addEventListener(x===q?'input':'change',garder)});
+document.addEventListener('visibilitychange',function(){if(document.hidden)garder()});window.addEventListener('pagehide',garder)})();</script></body></html>"""
     page = (page.replace("__CSS__", CSS + "\n" + CSS_BASE).replace("__N__", str(BASE_PAR_SEMAINE)).replace("__H__", str(BASE_MAX_H))
             .replace("__MAJ__", maj).replace("__NM__", str(len(MODELES))).replace("__MODELES__", html_modeles(MODELES, "photos/")).replace("__TM__", html.escape(texte_modeles())).replace("__DATA__", json.dumps(donnees, ensure_ascii=False).replace("</", "<\\/")))
     with open(os.path.join(DOSSIER_BASE, "index.html"), "w", encoding="utf-8") as f:
