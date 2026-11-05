@@ -861,7 +861,7 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vph{position:relative;display:flex;max-width:100%;max-height:calc(100% - 130px)}.vph img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
 .vph .d{font-size:14px}.vue .fl{position:absolute;top:50%;transform:translateY(-50%);font:600 40px/1 system-ui;color:#fff;background:rgba(255,255,255,.14);border:0;border-radius:99px;width:48px;height:48px;padding:0;cursor:pointer}.vue .fl.pv{left:8px;right:auto}.vue .fl.nx{right:8px}
 .vue{touch-action:pan-y}.vue p b{font-size:18px}.vue p em.co{background:#fff;color:#1d2120}.vue p em{font-style:normal;font-weight:600;background:#2f5d50;border-radius:99px;padding:2px 9px;margin-left:6px;white-space:nowrap}.vue p{color:#fff;margin:0;font-size:14px;text-align:center}
-.vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
+.vbt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}.vue .vbt button{position:static;font:600 15px system-ui;color:#fff;background:rgba(255,255,255,.18);border:0;border-radius:999px;padding:10px 16px;cursor:pointer}.vbt .auto.on{background:#2f5d50}.vbt .vit[hidden]{display:none}.vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
 .achat{font-weight:700;color:var(--accent)}.ventes{display:flex;gap:4px;flex-wrap:wrap}.body .ventes a{margin:0;font-size:12px;font-weight:600;color:var(--ink);background:var(--accent-soft);border-radius:4px;padding:1px 6px}
 .repli summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}.repli summary::-webkit-details-marker{display:none}
@@ -995,7 +995,7 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></details></section>
 <section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><div class="rech" id="rech" hidden><input type="search" id="q" placeholder="Chercher une marque…" aria-label="Chercher une marque" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><div class="sug" id="sug" hidden></div></div><select id="f" aria-label="Marque ou recherche" hidden></select><button type="button" class="remontrer" id="remontrer" hidden></button></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
-<div class="vue" id="vue" hidden><button type="button" class="x" aria-label="Fermer">×</button><button type="button" class="fl pv" aria-label="Précédente">‹</button><button type="button" class="fl nx" aria-label="Suivante">›</button><div class="vph"><img alt="" referrerpolicy="no-referrer"><span class="b d"></span></div><p></p><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div>
+<div class="vue" id="vue" hidden><button type="button" class="x" aria-label="Fermer">×</button><button type="button" class="fl pv" aria-label="Précédente">‹</button><button type="button" class="fl nx" aria-label="Suivante">›</button><div class="vph"><img alt="" referrerpolicy="no-referrer"><span class="b d"></span></div><p></p><div class="vbt"><button type="button" class="auto" aria-label="Défilement automatique">▶ Auto</button><button type="button" class="vit" aria-label="Vitesse du défilement">3 s</button><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div></div>
 <script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),c=document.getElementById('f'),choix=[],par={{}};
 // Un seul menu : toutes les ventes, puis une ligne par marque
 cartes.forEach(function(e){{var m=(e.dataset.m||'').trim(),k=m.toLowerCase();if(!k)return;var b=par[k]||(par[k]={{nom:m,n:0,r:{{}}}});b.n++;b.r[e.dataset.r]=(b.r[e.dataset.r]||0)+1}});
@@ -1040,11 +1040,19 @@ if(c.dataset.c){{var co=document.createElement('em');co.className='co';co.textCo
 if(c.dataset.x){{var e=document.createElement('em');e.textContent=c.dataset.x;t.append(e)}}if(L.length>1)t.append(' · '+(k+1)+' / '+L.length)}}
 else{{bd.hidden=true;t.textContent=x.dataset.t}}
 pv.hidden=nx.hidden=L.length<2;if(L.length>1){{var n=new Image();n.referrerPolicy='no-referrer';n.src=L[(k+1)%L.length].src}}}}
-function va(s){{if(L.length<2)return;k=(k+s+L.length)%L.length;show()}}
-function fermer(){{v.hidden=true;im.removeAttribute('src');document.body.style.overflow=''}}
+function va(s){{if(L.length<2)return;k=(k+s+L.length)%L.length;show();if(tic)lancer()}}
+// Défilement automatique : ▶ Auto / ❚❚ Pause, vitesse au choix (gardée sur l'appareil)
+var ba=v.querySelector('.auto'),bv=v.querySelector('.vit'),VIT=[2,3,5,8],dt=3,tic=null;try{{dt=+localStorage.getItem('diapo_vitesse')||3}}catch(e){{}}
+function lancer(){{clearInterval(tic);tic=setInterval(function(){{va(1)}},dt*1000)}}
+function arreter(){{clearInterval(tic);tic=null;maj()}}
+function maj(){{ba.textContent=tic?'❚❚ Pause':'▶ Auto';ba.classList.toggle('on',!!tic);bv.textContent=dt+' s';ba.hidden=bv.hidden=L.length<2}}
+ba.onclick=function(){{if(tic)arreter();else{{lancer();maj()}}}};
+bv.onclick=function(){{dt=VIT[(VIT.indexOf(dt)+1)%VIT.length]||3;try{{localStorage.setItem('diapo_vitesse',dt)}}catch(e){{}}if(tic)lancer();maj()}};
+l.addEventListener('click',arreter);document.addEventListener('visibilitychange',function(){{if(document.hidden)arreter()}});
+function fermer(){{arreter();v.hidden=true;im.removeAttribute('src');document.body.style.overflow=''}}
 document.addEventListener('click',function(e){{var x=e.target.closest('img[data-u]');if(!x||v.contains(x))return;e.preventDefault();
 var g=x.closest('.card')&&x.closest('.grid');L=g?[].slice.call(g.querySelectorAll('.card:not([hidden]):not(.masq) .ph img[data-u]')):[x];k=Math.max(0,L.indexOf(x));
-show();v.hidden=false;document.body.style.overflow='hidden'}});
+show();arreter();v.hidden=false;document.body.style.overflow='hidden'}});
 pv.onclick=function(){{va(-1)}};nx.onclick=function(){{va(1)}};
 v.addEventListener('click',function(e){{if(e.target===v||e.target.classList.contains('x'))fermer()}});
 document.addEventListener('keydown',function(e){{if(v.hidden)return;if(e.key==='Escape')fermer();if(e.key==='ArrowRight')va(1);if(e.key==='ArrowLeft')va(-1)}});
