@@ -861,13 +861,42 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vph{position:relative;display:flex;max-width:100%;max-height:calc(100% - 130px)}.vph img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
 .vph .d{font-size:14px}.vue .fl{position:absolute;top:50%;transform:translateY(-50%);font:600 40px/1 system-ui;color:#fff;background:rgba(255,255,255,.14);border:0;border-radius:99px;width:48px;height:48px;padding:0;cursor:pointer}.vue .fl.pv{left:8px;right:auto}.vue .fl.nx{right:8px}
 .vue{touch-action:pan-y}.vue p b{font-size:18px}.vue p em.co{background:#fff;color:#1d2120}.vue p em{font-style:normal;font-weight:600;background:#2f5d50;border-radius:99px;padding:2px 9px;margin-left:6px;white-space:nowrap}.vue p{color:#fff;margin:0;font-size:14px;text-align:center}
-.vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
+.vbt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}.vue .vbt button{position:static;font:600 15px system-ui;color:#fff;background:rgba(255,255,255,.18);border:0;border-radius:999px;padding:10px 16px;cursor:pointer}.vbt .auto.on{background:#2f5d50}.vbt .vit[hidden]{display:none}.vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
 .achat{font-weight:700;color:var(--accent)}.ventes{display:flex;gap:4px;flex-wrap:wrap}.body .ventes a{margin:0;font-size:12px;font-weight:600;color:var(--ink);background:var(--accent-soft);border-radius:4px;padding:1px 6px}
 .repli summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}.repli summary::-webkit-details-marker{display:none}
 .repli summary h2{margin:0}.repli summary::after{content:"▾ afficher";font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:3px 10px}
 .repli[open] summary::after{content:"▴ masquer"}.repli[open] summary{margin-bottom:8px}
 @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}}"""
+
+
+# Garde la page telle qu'on l'a laissée (menu marque, sections ouvertes, défilement, photo ouverte)
+# quand on revient de Vinted ou qu'elle se recharge toute seule.
+SCRIPT_ETAT = """<script>(function(){var K='page_etat',c=document.getElementById('f'),v=document.getElementById('vue'),pret=false;
+try{history.scrollRestoration='manual'}catch(e){}
+function base(o){return o?o.textContent.replace(/\\s*\\(\\d+\\)$/,''):''}
+function sections(){return [].map.call(document.querySelectorAll('details.repli'),function(d){return d.querySelector('summary').textContent.replace(/\\s*\\(\\d+\\)$/,'')})}
+function repere(){var L=document.querySelectorAll('.card:not([hidden]):not(.masq) img[data-u]');
+for(var i=0;i<L.length;i++){var r=L[i].closest('.card').getBoundingClientRect();if(r.bottom>0&&r.height)return {u:L[i].dataset.u,y:r.top}}return null}
+function garder(){if(!pret)return;var d=document.querySelectorAll('details.repli'),n=sections(),o=[];
+d.forEach(function(x,i){if(x.open)o.push(n[i])});
+var e={t:Date.now(),m:c&&!c.hidden?base(c.options[c.selectedIndex]):'',o:o,y:window.scrollY,a:repere(),v:v&&!v.hidden?v.querySelector('a').getAttribute('href'):''};
+try{localStorage.setItem(K,JSON.stringify(e))}catch(x){}}
+function trouver(u){var L=document.querySelectorAll('img[data-u]');for(var i=0;i<L.length;i++)if(L[i].dataset.u===u)return L[i];return null}
+function placer(e){var x=e.a&&trouver(e.a.u),c2=x&&x.closest('.card');
+if(c2&&!c2.hidden&&!c2.classList.contains('masq'))window.scrollTo(0,window.scrollY+c2.getBoundingClientRect().top-e.a.y);else window.scrollTo(0,e.y||0)}
+var e=null;try{e=JSON.parse(localStorage.getItem(K)||'null')}catch(x){}
+if(e){if(c&&!c.hidden&&e.m){for(var i=0;i<c.options.length;i++)if(base(c.options[i])===e.m){c.value=c.options[i].value;c.onchange&&c.onchange();c.dispatchEvent(new Event('change'));break}}
+var n=sections();document.querySelectorAll('details.repli').forEach(function(d,i){d.open=(e.o||[]).indexOf(n[i])>=0});
+// Défilement et photo ouverte : seulement si on revient dans les 6 heures
+if(Date.now()-e.t<6*3600e3){placer(e);requestAnimationFrame(function(){placer(e)});setTimeout(function(){placer(e)},400);
+if(e.v){var im=trouver(e.v);if(im)im.click()}}}
+pret=true;var tm=null;
+window.addEventListener('scroll',function(){clearTimeout(tm);tm=setTimeout(garder,250)},{passive:true});
+document.addEventListener('change',garder);document.addEventListener('click',function(){setTimeout(garder,0)});
+document.querySelectorAll('details.repli').forEach(function(d){d.addEventListener('toggle',garder)});
+document.addEventListener('visibilitychange',function(){if(document.hidden)garder()});
+window.addEventListener('pagehide',garder)})();</script>"""
 
 
 def ecrire_rapport(etat):
@@ -966,7 +995,7 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></details></section>
 <section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><div class="rech" id="rech" hidden><input type="search" id="q" placeholder="Chercher une marque…" aria-label="Chercher une marque" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><div class="sug" id="sug" hidden></div></div><select id="f" aria-label="Marque ou recherche" hidden></select></div><div class="filtres badges" id="bdg" hidden></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
-<div class="vue" id="vue" hidden><button type="button" class="x" aria-label="Fermer">×</button><button type="button" class="fl pv" aria-label="Précédente">‹</button><button type="button" class="fl nx" aria-label="Suivante">›</button><div class="vph"><img alt="" referrerpolicy="no-referrer"><span class="b d"></span></div><p></p><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div>
+<div class="vue" id="vue" hidden><button type="button" class="x" aria-label="Fermer">×</button><button type="button" class="fl pv" aria-label="Précédente">‹</button><button type="button" class="fl nx" aria-label="Suivante">›</button><div class="vph"><img alt="" referrerpolicy="no-referrer"><span class="b d"></span></div><p></p><div class="vbt"><button type="button" class="auto" aria-label="Défilement automatique">▶ Auto</button><button type="button" class="vit" aria-label="Vitesse du défilement">3 s</button><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div></div>
 <script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),c=document.getElementById('f'),choix=[],par={{}};
 // Un seul menu : toutes les ventes, puis une ligne par marque
 cartes.forEach(function(e){{var m=(e.dataset.m||'').trim(),k=m.toLowerCase();if(!k)return;var b=par[k]||(par[k]={{nom:m,n:0,r:{{}}}});b.n++;b.r[e.dataset.r]=(b.r[e.dataset.r]||0)+1}});
@@ -1023,11 +1052,19 @@ if(c.dataset.c){{var co=document.createElement('em');co.className='co';co.textCo
 if(c.dataset.x){{var e=document.createElement('em');e.textContent=c.dataset.x;t.append(e)}}if(L.length>1)t.append(' · '+(k+1)+' / '+L.length)}}
 else{{bd.hidden=true;t.textContent=x.dataset.t}}
 pv.hidden=nx.hidden=L.length<2;if(L.length>1){{var n=new Image();n.referrerPolicy='no-referrer';n.src=L[(k+1)%L.length].src}}}}
-function va(s){{if(L.length<2)return;k=(k+s+L.length)%L.length;show()}}
-function fermer(){{v.hidden=true;im.removeAttribute('src');document.body.style.overflow=''}}
+function va(s){{if(L.length<2)return;k=(k+s+L.length)%L.length;show();if(tic)lancer()}}
+// Défilement automatique : ▶ Auto / ❚❚ Pause, vitesse au choix (gardée sur l'appareil)
+var ba=v.querySelector('.auto'),bv=v.querySelector('.vit'),VIT=[2,3,5,8],dt=3,tic=null;try{{dt=+localStorage.getItem('diapo_vitesse')||3}}catch(e){{}}
+function lancer(){{clearInterval(tic);tic=setInterval(function(){{va(1)}},dt*1000)}}
+function arreter(){{clearInterval(tic);tic=null;maj()}}
+function maj(){{ba.textContent=tic?'❚❚ Pause':'▶ Auto';ba.classList.toggle('on',!!tic);bv.textContent=dt+' s';ba.hidden=bv.hidden=L.length<2}}
+ba.onclick=function(){{if(tic)arreter();else{{lancer();maj()}}}};
+bv.onclick=function(){{dt=VIT[(VIT.indexOf(dt)+1)%VIT.length]||3;try{{localStorage.setItem('diapo_vitesse',dt)}}catch(e){{}}if(tic)lancer();maj()}};
+l.addEventListener('click',arreter);document.addEventListener('visibilitychange',function(){{if(document.hidden)arreter()}});
+function fermer(){{arreter();v.hidden=true;im.removeAttribute('src');document.body.style.overflow=''}}
 document.addEventListener('click',function(e){{var x=e.target.closest('img[data-u]');if(!x||v.contains(x))return;e.preventDefault();
 var g=x.closest('.card')&&x.closest('.grid');L=g?[].slice.call(g.querySelectorAll('.card:not([hidden]):not(.masq) .ph img[data-u]')):[x];k=Math.max(0,L.indexOf(x));
-show();v.hidden=false;document.body.style.overflow='hidden'}});
+show();arreter();v.hidden=false;document.body.style.overflow='hidden'}});
 pv.onclick=function(){{va(-1)}};nx.onclick=function(){{va(1)}};
 v.addEventListener('click',function(e){{if(e.target===v||e.target.classList.contains('x'))fermer()}});
 document.addEventListener('keydown',function(e){{if(v.hidden)return;if(e.key==='Escape')fermer();if(e.key==='ArrowRight')va(1);if(e.key==='ArrowLeft')va(-1)}});
@@ -1040,7 +1077,7 @@ function poser(d){{ind.style.transform='translate(-50%,'+(Math.min(d,SEUIL+20)-4
 document.addEventListener('touchstart',function(e){{y0=(window.scrollY<=0&&document.getElementById('vue').hidden)?e.touches[0].clientY:null;dy=0}},{{passive:true}});
 document.addEventListener('touchmove',function(e){{if(y0===null)return;dy=e.touches[0].clientY-y0;if(dy>0)poser(dy)}},{{passive:true}});
 document.addEventListener('touchend',function(){{if(y0===null)return;y0=null;if(dy>=SEUIL){{ind.textContent='↻ Actualisation…';recharger()}}else poser(0)}});
-document.addEventListener('visibilitychange',function(){{if(!document.hidden&&Date.now()-t0>120000)recharger()}})}})();</script></body></html>"""
+document.addEventListener('visibilitychange',function(){{if(!document.hidden&&Date.now()-t0>120000)recharger()}})}})();</script>{SCRIPT_ETAT}</body></html>"""
     os.makedirs(os.path.dirname(FICHIER_RAPPORT), exist_ok=True)
     with open(FICHIER_RAPPORT, "w", encoding="utf-8") as f:
         f.write(page)
@@ -1293,7 +1330,17 @@ var k=o.value;L.sort(function(a,b){return k==='h'?a.hn-b.hn||b.p-a.p:k==='p'?b.p
 g.innerHTML='';L.slice(0,lim).forEach(function(d){g.appendChild(carte(d))});
 n.textContent=L.length+' vente'+(L.length>1?'s':'')+(L.length?'':' : rien ne correspond');plus.hidden=L.length<=lim}
 [q,m,r,o].forEach(function(e){e.addEventListener(e===q?'input':'change',function(){lim=120;rendu()})});
-plus.onclick=function(){lim+=120;rendu()};rendu()})();</script></body></html>"""
+plus.onclick=function(){lim+=120;rendu();garder()};
+// Garde la recherche, les menus et le défilement quand on revient sur la page
+var K='meilleures_etat',pret=false;try{history.scrollRestoration='manual'}catch(x){}
+function garder(){if(!pret)return;try{localStorage.setItem(K,JSON.stringify({t:Date.now(),q:q.value,m:m.value,r:r.value,o:o.value,lim:lim,y:window.scrollY}))}catch(x){}}
+var e=null;try{e=JSON.parse(localStorage.getItem(K)||'null')}catch(x){}
+function ok(s,v){return [].some.call(s.options,function(x){return x.value===v})}
+if(e){q.value=e.q||'';if(ok(m,e.m))m.value=e.m;if(ok(r,e.r))r.value=e.r;if(ok(o,e.o))o.value=e.o;lim=Math.max(120,+e.lim||120)}
+rendu();if(e&&Date.now()-e.t<6*3600e3){var y=e.y||0;window.scrollTo(0,y);setTimeout(function(){window.scrollTo(0,y)},400)}
+pret=true;var tm=null;window.addEventListener('scroll',function(){clearTimeout(tm);tm=setTimeout(garder,250)},{passive:true});
+[q,m,r,o].forEach(function(x){x.addEventListener(x===q?'input':'change',garder)});
+document.addEventListener('visibilitychange',function(){if(document.hidden)garder()});window.addEventListener('pagehide',garder)})();</script></body></html>"""
     page = (page.replace("__CSS__", CSS + "\n" + CSS_BASE).replace("__N__", str(BASE_PAR_SEMAINE)).replace("__H__", str(BASE_MAX_H))
             .replace("__MAJ__", maj).replace("__NM__", str(len(MODELES))).replace("__MODELES__", html_modeles(MODELES, "photos/")).replace("__TM__", html.escape(texte_modeles())).replace("__DATA__", json.dumps(donnees, ensure_ascii=False).replace("</", "<\\/")))
     with open(os.path.join(DOSSIER_BASE, "index.html"), "w", encoding="utf-8") as f:
