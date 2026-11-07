@@ -14,3 +14,4 @@ Bellerose | https://www.vinted.fr/catalog?brand_ids[]=2007&status_ids[]=2&price_
 Zavetti Canada | https://www.vinted.fr/catalog?brand_ids[]=1374333&status_ids[]=2&price_from=65&currency=EUR&order=newest_first
 Sessùn | https://www.vinted.fr/catalog?brand_ids[]=329&status_ids[]=2&price_from=65&currency=EUR&order=newest_first
 Comptoir des Cotonniers | https://www.vinted.fr/catalog?brand_ids[]=238&brand_ids[]=19535&status_ids[]=2&price_from=65&currency=EUR&order=newest_first
+Gérard Darel | https://www.vinted.fr/catalog?brand_ids[]=179&status_ids[]=2&price_from=70&currency=EUR&order=newest_first
