@@ -1108,7 +1108,7 @@ def html_likes(etat, t0, zoom):
                f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
         vt = f"{v:.0f}" if v >= 10 else f"{v:.1f}".replace(".", ",")
         cartes.append(
-            f'<article class="card" data-age="{h:.2f}" data-m="{html.escape((a["marque"] or "").strip())}" data-s="{html.escape(a["taille"] or "")}" data-x="♥ {a["likes"]} en {fmt_h(h)}"><div class="ph">{img}<span class="b d{" hot" if v >= 2 else ""}">{vt} ♥/h</span>'
+            f'<article class="card" data-age="{h:.2f}" data-m="{html.escape((a["marque"] or "").strip())}" data-k="{html.escape(type_vetement([a["titre"]]) or "autre")}" data-s="{html.escape(a["taille"] or "")}" data-x="♥ {a["likes"]} en {fmt_h(h)}"><div class="ph">{img}<span class="b d{" hot" if v >= 2 else ""}">{vt} ♥/h</span>'
             f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="t">{html.escape(a["marque"] or a["recherche"])}</span>'
             f'<span>♥ {a["likes"]} en {fmt_h(h)}</span><span class="m">{html.escape(a["titre"])}</span>'
             f'<span class="m">{html.escape(" · ".join(x for x in (a["taille"], a["etat_article"]) if x))}</span>'
@@ -1123,6 +1123,14 @@ def html_likes(etat, t0, zoom):
         puces += ('<select id="lkm" aria-label="Marque"><option value="">Toutes les marques</option>'
                   + "".join(f'<option value="{html.escape(m)}">{html.escape(m)} ({n})</option>' for m, n in sorted(nb.items(), key=lambda x: (-x[1], x[0].lower())))
                   + '</select>')
+    nk = {}
+    for a in lk[:LIKES_AFFICHEES]:
+        k = type_vetement([a["titre"]]) or "autre"
+        nk[k] = nk.get(k, 0) + 1
+    if len(nk) > 1:
+        puces += ('<select id="lkc" aria-label="Catégorie"><option value="">Toutes les catégories</option>'
+                  + "".join(f'<option value="{html.escape(k)}">{html.escape(k.capitalize())} ({n})</option>' for k, n in sorted(nk.items(), key=lambda x: (x[0] == "autre", -x[1], x[0])))
+                  + '</select>')
     return (
         f"""<section><details class="repli"><summary><h2>Likes rapides</h2></summary><div class="filtres" id="lkf">{puces}</div>"""
         f"""<div class="grid" id="lkg">{''.join(cartes) or '<p class="sub">Pas encore d’annonce : le premier relevé arrive au prochain passage.</p>'}</div>"""
@@ -1131,9 +1139,11 @@ def html_likes(etat, t0, zoom):
         """<script>(function(){var f=document.getElementById('lkf'),g=document.getElementById('lkg'),n=document.getElementById('lkn'),sm=document.getElementById('lkm'),K='likes_fenetre',KM='likes_marque',h=6,mq='';
 try{h=+localStorage.getItem(K)||6;mq=localStorage.getItem(KM)||''}catch(e){}
 if(sm){if(![].some.call(sm.options,function(o){return o.value===mq}))mq='';sm.value=mq;sm.onchange=function(){mq=sm.value;try{localStorage.setItem(KM,mq)}catch(e){}maj()}}else mq='';
-function maj(){var c=0;g.querySelectorAll('.card').forEach(function(e){var x=+e.dataset.age>h||(mq&&e.dataset.m!==mq);e.hidden=x;if(!x)c++});
+var sc=document.getElementById('lkc'),KC='likes_categorie',ct='';try{ct=localStorage.getItem(KC)||''}catch(e){}
+if(sc){if(![].some.call(sc.options,function(o){return o.value===ct}))ct='';sc.value=ct;sc.onchange=function(){ct=sc.value;try{localStorage.setItem(KC,ct)}catch(e){}maj()}}else ct='';
+function maj(){var c=0;g.querySelectorAll('.card').forEach(function(e){var x=+e.dataset.age>h||(mq&&e.dataset.m!==mq)||(ct&&e.dataset.k!==ct);e.hidden=x;if(!x)c++});
 f.querySelectorAll('button').forEach(function(b){var on=+b.dataset.h===h;b.style.background=on?'var(--accent)':'';b.style.color=on?'var(--bg)':''});
-n.textContent=c?'':'Aucune annonce'+(mq?' '+mq:'')+' mise en ligne depuis moins de '+h+' h avec assez de likes.'}
+n.textContent=c?'':'Aucune annonce'+(ct?' ('+ct+')':'')+(mq?' '+mq:'')+' mise en ligne depuis moins de '+h+' h avec assez de likes.'}
 f.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;h=+b.dataset.h;try{localStorage.setItem(K,h)}catch(e){}maj()});maj()})();</script>""")
 
 
@@ -1397,7 +1407,11 @@ def type_vetement(titres):
             "veste": "veste", "jacket": "veste", "jacke": "veste", "giacca": "veste", "manteau": "manteau", "mantel": "manteau",
             "coat": "manteau", "cappotto": "manteau", "parka": "parka", "doudoune": "doudoune", "puffer": "doudoune", "trench": "trench",
             "blazer": "blazer", "robe": "robe", "jupe": "jupe", "pantalon": "pantalon", "chemise": "chemise", "blouse": "blouse",
-            "polaire": "polaire", "fleece": "polaire", "weste": "gilet sans manches", "vest": "gilet sans manches"}
+            "polaire": "polaire", "fleece": "polaire", "weste": "gilet sans manches", "vest": "gilet sans manches",
+            "jean": "jean", "jeans": "jean", "top": "top", "debardeur": "top", "short": "short", "combinaison": "combinaison",
+            "bottes": "chaussures", "bottines": "chaussures", "boots": "chaussures", "baskets": "chaussures", "sneakers": "chaussures",
+            "escarpins": "chaussures", "sandales": "chaussures", "mocassins": "chaussures", "sac": "sac", "pochette": "sac",
+            "echarpe": "accessoire", "bonnet": "accessoire", "ceinture": "accessoire", "foulard": "accessoire"}
     c = {}
     for t in titres:
         for m in re.findall(r"[a-z]+", _nz(t)):
