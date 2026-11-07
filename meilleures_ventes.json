@@ -1,5 +1,5 @@
 {
-"enregistre": 1793998015.677422,
+"enregistre": 1794009767.4915557,
 "ventes": {
 "10403973563": {
 "couleur": "",
@@ -2129,6 +2129,25 @@
 "url": "https://www.vinted.fr/items/10615912817-rollkragenpullover-cos",
 "vendu": 1793524615.7117786
 },
+"10616813418": {
+"couleur": "",
+"delai_h": 0.27,
+"etat": "Très bon état",
+"id": "10616813418",
+"likes": 5,
+"marque": "Bellerose",
+"median": 140.0,
+"ph": "10616813418.jpg",
+"photo_url": "https://images1.vinted.net/t/02_00427_KoxFx9FaZgUjjSraR9qpnByx/310x430/753c5c6c.webp?s=b761bcb6fd1cf5076b9193bed3d96a47a770f190",
+"prix": 140.0,
+"publie": 1793528607.5246918,
+"recherche": "Bellerose",
+"semaine": "2026-44",
+"taille": "S",
+"titre": "Parka Laos Bellerose",
+"url": "https://www.vinted.fr/items/10616813418-parka-laos-bellerose",
+"vendu": 1793529592.948658
+},
 "10617120640": {
 "couleur": "",
 "delai_h": 1.08,
@@ -3744,25 +3763,6 @@
 "url": "https://www.vinted.fr/items/10688921259-veste-laine-arket",
 "vendu": 1793975855.4821634
 },
-"10689041044": {
-"couleur": "Noir",
-"delai_h": 0.28,
-"etat": "Très bon état",
-"id": "10689041044",
-"likes": 1,
-"marque": "Pyrenex",
-"median": 122.5,
-"ph": "10689041044.jpg",
-"photo_url": "https://images1.vinted.net/t/02_010e9_jdyhMUsdLfut5UGj6jgNL23A/310x430/ea01c66c.webp?s=af4dac3c2efd31182a7a5e18fb307293b586027a",
-"prix": 200.0,
-"publie": 1793974864.9132586,
-"recherche": "Pyrenex doudoune",
-"semaine": "2026-45",
-"taille": "L",
-"titre": "Doudoune Pyrenex",
-"url": "https://www.vinted.fr/items/10689041044-doudoune-pyrenex",
-"vendu": 1793975855.4821634
-},
 "10689682143": {
 "couleur": "Kaki",
 "delai_h": 0.28,
@@ -3895,6 +3895,25 @@
 "titre": "Doudoune pyrenex noir",
 "url": "https://www.vinted.fr/items/10692670900-doudoune-pyrenex-noir",
 "vendu": 1793992008.9374983
+},
+"10694119153": {
+"couleur": "Noir",
+"delai_h": 0.28,
+"etat": "Très bon état",
+"id": "10694119153",
+"likes": 1,
+"marque": "Pyrenex",
+"median": 130.0,
+"ph": "10694119153.jpg",
+"photo_url": "https://images1.vinted.net/t/05_013f5_kMAUiAQbKiJUuhjqWWwtVcx1/310x430/babdb703.webp?s=6f93317012a298e5185d762dab624384d3900443",
+"prix": 290.0,
+"publie": 1793998015.677422,
+"recherche": "Pyrenex doudoune",
+"semaine": "2026-45",
+"taille": "S",
+"titre": "Doudoune mixte pyrenex",
+"url": "https://www.vinted.fr/items/10694119153-doudoune-mixte-pyrenex",
+"vendu": 1793999025.297645
 }
 }
 }
