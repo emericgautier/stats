@@ -932,7 +932,7 @@ def ecrire_rapport(etat):
         img = (f'<img loading="lazy" referrerpolicy="no-referrer" alt="" src="{html.escape(a["photo"])}" {zoom(a)} '
                f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
         cartes.append(
-            f'<article class="card" data-id="{html.escape(a["id"])}" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}" data-h="{html.escape(fmt_h(h))}" data-s="{html.escape(a["taille"] or "")}" data-c="{html.escape(a.get("couleur") or "")}"{f' data-x="achat max ≤ {fmt_prix(achat_max[a["recherche"]])}"' if a["recherche"] in achat_max else ""}><div class="ph">{img}<button type="button" class="cache" aria-label="Masquer cette vente" title="Masquer cette vente">×</button><span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
+            f'<article class="card" data-id="{html.escape(a["id"])}" data-r="{html.escape(a["recherche"])}" data-m="{html.escape((a["marque"] or "").strip())}" data-k="{html.escape(type_vetement([a["titre"]]) or "autre")}" data-h="{html.escape(fmt_h(h))}" data-s="{html.escape(a["taille"] or "")}" data-c="{html.escape(a.get("couleur") or "")}"{f' data-x="achat max ≤ {fmt_prix(achat_max[a["recherche"]])}"' if a["recherche"] in achat_max else ""}><div class="ph">{img}<button type="button" class="cache" aria-label="Masquer cette vente" title="Masquer cette vente">×</button><span class="b d{" hot" if h is not None and h <= 6 else ""}">≤ {fmt_h(h)}</span>'
             f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="m">{html.escape(a["recherche"])}</span>'
             f'<span class="t">{html.escape(a["titre"])}</span><span class="m">{html.escape(" · ".join(x for x in (a["marque"], a["taille"], a.get("couleur"), a["etat_article"]) if x))}'
             f'{" · ♥ " + str(a["likes"]) if a.get("likes") else ""}</span>'
@@ -994,7 +994,7 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 <section><details class="repli"><summary><h2>Par recherche</h2></summary><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>
 <p class="sub">Taux 24 h : part des annonces vendues en moins de 24 h, parmi celles publiées depuis au moins 24 h ou déjà vendues.</p></details></section>
-<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><div class="rech" id="rech" hidden><input type="search" id="q" placeholder="Chercher une marque…" aria-label="Chercher une marque" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><div class="sug" id="sug" hidden></div></div><select id="f" aria-label="Marque ou recherche" hidden></select></div><div class="filtres badges" id="bdg" hidden></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
+<section><h2>Vendues ({len(vendus)})</h2><div class="filtres"><div class="rech" id="rech" hidden><input type="search" id="q" placeholder="Chercher une marque…" aria-label="Chercher une marque" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><div class="sug" id="sug" hidden></div></div><select id="f" aria-label="Marque ou recherche" hidden></select><select id="fk" aria-label="Catégorie" hidden></select></div><div class="filtres badges" id="bdg" hidden></div><div class="grid" id="grid">{''.join(cartes)}</div></section></div>
 <div class="vue" id="vue" hidden><button type="button" class="x" aria-label="Fermer">×</button><button type="button" class="fl pv" aria-label="Précédente">‹</button><button type="button" class="fl nx" aria-label="Suivante">›</button><div class="vph"><img alt="" referrerpolicy="no-referrer"><span class="b d"></span></div><p></p><div class="vbt"><button type="button" class="auto" aria-label="Défilement automatique">▶ Auto</button><button type="button" class="vit" aria-label="Vitesse du défilement">3 s</button><a target="_blank" rel="noopener">Voir sur Vinted ↗</a></div></div>
 <script>(function(){{var g=document.getElementById('grid'),cartes=[].slice.call(g.querySelectorAll('.card')),c=document.getElementById('f'),choix=[],par={{}};
 // Un seul menu : toutes les ventes, puis une ligne par marque
@@ -1003,8 +1003,18 @@ function ajouter(texte,f){{var o=document.createElement('option');o.value=choix.
 ajouter('Toutes les ventes ('+cartes.length+')',null);
 var ks=Object.keys(par).sort(function(x,y){{return par[x].nom.localeCompare(par[y].nom,'fr')}});
 ks.forEach(function(k){{var b=par[k];ajouter(b.nom+' ('+b.n+')',{{m:k}})}});
-if(ks.length>1||choix.length>2){{c.hidden=false;c.onchange=function(){{var f=choix[+c.value];
-cartes.forEach(function(e){{e.hidden=!!f&&((e.dataset.m||'').trim().toLowerCase()!==f.m||(!!f.r&&e.dataset.r!==f.r))}})}};
+// Catégorie (déduite du titre) : se combine avec la marque, compteurs selon la marque choisie
+var fk=document.getElementById('fk'),KK='ventes_categorie',ct='';try{{ct=localStorage.getItem(KK)||''}}catch(e){{}}
+function dansMarque(e,f){{return !f||((e.dataset.m||'').trim().toLowerCase()===f.m&&(!f.r||e.dataset.r===f.r))}}
+function categories(){{var f=choix[+c.value],n={{}},t=0;cartes.forEach(function(e){{if(dansMarque(e,f)){{n[e.dataset.k]=(n[e.dataset.k]||0)+1;t++}}}});
+var L=Object.keys(n).sort(function(x,y){{return (x==='autre')-(y==='autre')||n[y]-n[x]||x.localeCompare(y,'fr')}});
+if(ct&&!n[ct])ct='';fk.innerHTML='';var o=document.createElement('option');o.value='';o.textContent='Toutes les catégories ('+t+')';fk.appendChild(o);
+L.forEach(function(k){{var o=document.createElement('option');o.value=k;o.textContent=k.charAt(0).toUpperCase()+k.slice(1)+' ('+n[k]+')';fk.appendChild(o)}});
+fk.value=ct;fk.hidden=L.length<2&&!ct}}
+function filtrer(){{var f=choix[+c.value];cartes.forEach(function(e){{e.hidden=!dansMarque(e,f)||(!!ct&&e.dataset.k!==ct)}})}}
+fk.onchange=function(){{ct=fk.value;try{{localStorage.setItem(KK,ct)}}catch(e){{}}filtrer()}};
+categories();filtrer();
+if(ks.length>1||choix.length>2){{c.hidden=false;c.onchange=function(){{categories();filtrer()}};
 // Recherche rapide : taper le début d'une marque puis toucher la suggestion
 var rq=document.getElementById('rech'),q=document.getElementById('q'),sg=document.getElementById('sug'),pos={{}};
 choix.forEach(function(f,i){{if(f)pos[f.m]=i}});
@@ -1108,7 +1118,7 @@ def html_likes(etat, t0, zoom):
                f'onerror="this.replaceWith(\'Photo expirée\')">') if a["photo"] else "Pas de photo"
         vt = f"{v:.0f}" if v >= 10 else f"{v:.1f}".replace(".", ",")
         cartes.append(
-            f'<article class="card" data-age="{h:.2f}" data-m="{html.escape((a["marque"] or "").strip())}" data-s="{html.escape(a["taille"] or "")}" data-x="♥ {a["likes"]} en {fmt_h(h)}"><div class="ph">{img}<span class="b d{" hot" if v >= 2 else ""}">{vt} ♥/h</span>'
+            f'<article class="card" data-age="{h:.2f}" data-m="{html.escape((a["marque"] or "").strip())}" data-k="{html.escape(type_vetement([a["titre"]]) or "autre")}" data-s="{html.escape(a["taille"] or "")}" data-x="♥ {a["likes"]} en {fmt_h(h)}"><div class="ph">{img}<span class="b d{" hot" if v >= 2 else ""}">{vt} ♥/h</span>'
             f'<span class="b p">{fmt_prix(a["prix"])}</span></div><div class="body"><span class="t">{html.escape(a["marque"] or a["recherche"])}</span>'
             f'<span>♥ {a["likes"]} en {fmt_h(h)}</span><span class="m">{html.escape(a["titre"])}</span>'
             f'<span class="m">{html.escape(" · ".join(x for x in (a["taille"], a["etat_article"]) if x))}</span>'
@@ -1123,6 +1133,14 @@ def html_likes(etat, t0, zoom):
         puces += ('<select id="lkm" aria-label="Marque"><option value="">Toutes les marques</option>'
                   + "".join(f'<option value="{html.escape(m)}">{html.escape(m)} ({n})</option>' for m, n in sorted(nb.items(), key=lambda x: (-x[1], x[0].lower())))
                   + '</select>')
+    nk = {}
+    for a in lk[:LIKES_AFFICHEES]:
+        k = type_vetement([a["titre"]]) or "autre"
+        nk[k] = nk.get(k, 0) + 1
+    if len(nk) > 1:
+        puces += ('<select id="lkc" aria-label="Catégorie"><option value="">Toutes les catégories</option>'
+                  + "".join(f'<option value="{html.escape(k)}">{html.escape(k.capitalize())} ({n})</option>' for k, n in sorted(nk.items(), key=lambda x: (x[0] == "autre", -x[1], x[0])))
+                  + '</select>')
     return (
         f"""<section><details class="repli"><summary><h2>Likes rapides</h2></summary><div class="filtres" id="lkf">{puces}</div>"""
         f"""<div class="grid" id="lkg">{''.join(cartes) or '<p class="sub">Pas encore d’annonce : le premier relevé arrive au prochain passage.</p>'}</div>"""
@@ -1131,9 +1149,11 @@ def html_likes(etat, t0, zoom):
         """<script>(function(){var f=document.getElementById('lkf'),g=document.getElementById('lkg'),n=document.getElementById('lkn'),sm=document.getElementById('lkm'),K='likes_fenetre',KM='likes_marque',h=6,mq='';
 try{h=+localStorage.getItem(K)||6;mq=localStorage.getItem(KM)||''}catch(e){}
 if(sm){if(![].some.call(sm.options,function(o){return o.value===mq}))mq='';sm.value=mq;sm.onchange=function(){mq=sm.value;try{localStorage.setItem(KM,mq)}catch(e){}maj()}}else mq='';
-function maj(){var c=0;g.querySelectorAll('.card').forEach(function(e){var x=+e.dataset.age>h||(mq&&e.dataset.m!==mq);e.hidden=x;if(!x)c++});
+var sc=document.getElementById('lkc'),KC='likes_categorie',ct='';try{ct=localStorage.getItem(KC)||''}catch(e){}
+if(sc){if(![].some.call(sc.options,function(o){return o.value===ct}))ct='';sc.value=ct;sc.onchange=function(){ct=sc.value;try{localStorage.setItem(KC,ct)}catch(e){}maj()}}else ct='';
+function maj(){var c=0;g.querySelectorAll('.card').forEach(function(e){var x=+e.dataset.age>h||(mq&&e.dataset.m!==mq)||(ct&&e.dataset.k!==ct);e.hidden=x;if(!x)c++});
 f.querySelectorAll('button').forEach(function(b){var on=+b.dataset.h===h;b.style.background=on?'var(--accent)':'';b.style.color=on?'var(--bg)':''});
-n.textContent=c?'':'Aucune annonce'+(mq?' '+mq:'')+' mise en ligne depuis moins de '+h+' h avec assez de likes.'}
+n.textContent=c?'':'Aucune annonce'+(ct?' ('+ct+')':'')+(mq?' '+mq:'')+' mise en ligne depuis moins de '+h+' h avec assez de likes.'}
 f.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;h=+b.dataset.h;try{localStorage.setItem(K,h)}catch(e){}maj()});maj()})();</script>""")
 
 
@@ -1397,7 +1417,11 @@ def type_vetement(titres):
             "veste": "veste", "jacket": "veste", "jacke": "veste", "giacca": "veste", "manteau": "manteau", "mantel": "manteau",
             "coat": "manteau", "cappotto": "manteau", "parka": "parka", "doudoune": "doudoune", "puffer": "doudoune", "trench": "trench",
             "blazer": "blazer", "robe": "robe", "jupe": "jupe", "pantalon": "pantalon", "chemise": "chemise", "blouse": "blouse",
-            "polaire": "polaire", "fleece": "polaire", "weste": "gilet sans manches", "vest": "gilet sans manches"}
+            "polaire": "polaire", "fleece": "polaire", "weste": "gilet sans manches", "vest": "gilet sans manches",
+            "jean": "jean", "jeans": "jean", "top": "top", "debardeur": "top", "short": "short", "combinaison": "combinaison",
+            "bottes": "chaussures", "bottines": "chaussures", "boots": "chaussures", "baskets": "chaussures", "sneakers": "chaussures",
+            "escarpins": "chaussures", "sandales": "chaussures", "mocassins": "chaussures", "sac": "sac", "pochette": "sac",
+            "echarpe": "accessoire", "bonnet": "accessoire", "ceinture": "accessoire", "foulard": "accessoire"}
     c = {}
     for t in titres:
         for m in re.findall(r"[a-z]+", _nz(t)):
