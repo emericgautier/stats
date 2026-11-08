@@ -16,3 +16,4 @@ Sessùn | https://www.vinted.fr/catalog?brand_ids[]=329&status_ids[]=2&price_fro
 Comptoir des Cotonniers | https://www.vinted.fr/catalog?brand_ids[]=238&brand_ids[]=19535&status_ids[]=2&price_from=65&currency=EUR&order=newest_first
 Gérard Darel | https://www.vinted.fr/catalog?brand_ids[]=179&status_ids[]=2&price_from=70&currency=EUR&order=newest_first
 Samsøe Samsøe | https://www.vinted.fr/catalog?brand_ids[]=87414&status_ids[]=2&price_from=65&currency=EUR&order=newest_first
+Aigle | https://www.vinted.fr/catalog?brand_ids[]=2661&status_ids[]=2&price_from=70&currency=EUR&order=newest_first
