@@ -1,5 +1,5 @@
 {
-"enregistre": 1794114693.2936285,
+"enregistre": 1794126474.8955226,
 "ventes": {
 "10403973563": {
 "couleur": "",
@@ -2813,25 +2813,6 @@
 "url": "https://www.vinted.fr/items/10646604108-doubleface-jacke",
 "vendu": 1793704308.998739
 },
-"10646712277": {
-"couleur": "",
-"delai_h": 0.27,
-"etat": "Très bon état",
-"id": "10646712277",
-"likes": 5,
-"marque": "Barbour",
-"median": 85.0,
-"ph": "10646712277.jpg",
-"photo_url": "https://images1.vinted.net/t/05_00f46_EmVLSgHj3LHwb2yxenHqtZWo/310x430/fffcce80.webp?s=485a2395ac434c6179f77289b9fe96b923b587da",
-"prix": 90.5,
-"publie": 1793701381.556949,
-"recherche": "Barbour matelassée",
-"semaine": "2026-45",
-"taille": "EU 38",
-"titre": "Babor X Ganni",
-"url": "https://www.vinted.fr/items/10646712277-babor-x-ganni",
-"vendu": 1793702356.85854
-},
 "10647292598": {
 "couleur": "",
 "delai_h": 0.26,
@@ -3440,25 +3421,6 @@
 "url": "https://www.vinted.fr/items/10680992441-polaire-american-vintage",
 "vendu": 1793910213.1853504
 },
-"10681534009": {
-"couleur": "Marron, Marine",
-"delai_h": 0.3,
-"etat": "Très bon état",
-"id": "10681534009",
-"likes": 2,
-"marque": "Balzac Paris",
-"median": 78.0,
-"ph": "10681534009.jpg",
-"photo_url": "https://images1.vinted.net/t/05_0074e_y4SMeW4dACfjSEqpaKEBpb6D/310x430/23ff78fa.webp?s=1f6eee587604a7f206226d83b607b7c4f4258a5b",
-"prix": 78.0,
-"publie": 1793911198.6507657,
-"recherche": "Balzac Paris",
-"semaine": "2026-45",
-"taille": "M",
-"titre": "Cardigan Balzac Paris",
-"url": "https://www.vinted.fr/items/10681534009-cardigan-balzac-paris",
-"vendu": 1793912274.7379582
-},
 "10684722247": {
 "couleur": "Marron",
 "delai_h": 0.26,
@@ -4028,6 +3990,44 @@
 "titre": "Doudoune noir Zavetti Canada",
 "url": "https://www.vinted.fr/items/10709493051-doudoune-noir-zavetti-canada",
 "vendu": 1794089659.915812
+},
+"10712397805": {
+"couleur": "Marron, Blanc",
+"delai_h": 0.26,
+"etat": "Très bon état",
+"id": "10712397805",
+"likes": 2,
+"marque": "Balzac Paris",
+"median": 80.0,
+"ph": "10712397805.jpg",
+"photo_url": "https://images1.vinted.net/t/02_01449_yqLdLfpqRCc5W5mbFybm3Bpz/310x430/65c47516.webp?s=b4823fa798baa5bc5463244417cef0682bf1ceba",
+"prix": 80.0,
+"publie": 1794122568.471899,
+"recherche": "Balzac Paris",
+"semaine": "2026-45",
+"taille": "EU 34",
+"titre": "Salopette balzac léopard",
+"url": "https://www.vinted.fr/items/10712397805-salopette-balzac-leopard",
+"vendu": 1794123521.6208043
+},
+"10712516962": {
+"couleur": "Vert foncé",
+"delai_h": 0.27,
+"etat": "Très bon état",
+"id": "10712516962",
+"likes": 1,
+"marque": "Barbour",
+"median": 112.5,
+"ph": "10712516962.jpg",
+"photo_url": "https://images1.vinted.net/t/04_01140_Q8yKdBWVuMXXgC1VZinFSkRh/310x430/2cc366f4.webp?s=46b22a9d47cf839479beb035a427e66a7c13cb89",
+"prix": 150.0,
+"publie": 1794123521.6208043,
+"recherche": "Barbour matelassée",
+"semaine": "2026-45",
+"taille": "EU 38",
+"titre": "Giacca Barbour",
+"url": "https://www.vinted.fr/items/10712516962-giacca-barbour",
+"vendu": 1794124507.4313657
 },
 "9375584784": {
 "couleur": "Beige, Noir",
