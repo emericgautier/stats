@@ -17,3 +17,4 @@ Comptoir des Cotonniers | https://www.vinted.fr/catalog?brand_ids[]=238&brand_id
 Gérard Darel | https://www.vinted.fr/catalog?brand_ids[]=179&status_ids[]=2&price_from=70&currency=EUR&order=newest_first
 Samsøe Samsøe | https://www.vinted.fr/catalog?brand_ids[]=87414&status_ids[]=2&price_from=65&currency=EUR&order=newest_first
 Aigle | https://www.vinted.fr/catalog?brand_ids[]=2661&status_ids[]=2&price_from=70&currency=EUR&order=newest_first
+Uniqlo manteaux | https://www.vinted.fr/catalog?catalog[]=1907&catalog[]=2051&brand_ids[]=1153&status_ids[]=2&price_from=40&currency=EUR&order=newest_first
