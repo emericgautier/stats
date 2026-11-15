@@ -1,5 +1,5 @@
 {
-"enregistre": 1794723544.098006,
+"enregistre": 1794734426.591997,
 "ventes": {
 "10403973563": {
 "couleur": "",
@@ -5587,25 +5587,6 @@
 "url": "https://www.vinted.fr/items/10787928771-bellerose-kaki-parka-met-bontvoering-maat-1",
 "vendu": 1794561351.7211893
 },
-"10788181804": {
-"couleur": "Noir",
-"delai_h": 0.55,
-"etat": "Très bon état",
-"id": "10788181804",
-"likes": 20,
-"marque": "Gerard Darel",
-"median": 112.0,
-"ph": "10788181804.jpg",
-"photo_url": "https://images1.vinted.net/t/06_01401_z6EAbLKbssX2xMPehiey9Te8/310x430/1c254eee.webp?s=214756a86695010f63ec0a8d000c2381ae248322",
-"prix": 120.0,
-"publie": 1794561351.7211893,
-"recherche": "Gérard Darel",
-"semaine": "2026-46",
-"taille": "",
-"titre": "Sac Charlotte 24 heures de Gérard Darel",
-"url": "https://www.vinted.fr/items/10788181804-sac-charlotte-24-heures-de-gerard-darel",
-"vendu": 1794563341.8369172
-},
 "10789030318": {
 "couleur": "Marron",
 "delai_h": 0.27,
@@ -6100,6 +6081,25 @@
 "url": "https://www.vinted.fr/items/10805975974-sac-a-main-24h-gerard-darel",
 "vendu": 1794668023.6706567
 },
+"10807456415": {
+"couleur": "Marron, Crème",
+"delai_h": 0.27,
+"etat": "Très bon état",
+"id": "10807456415",
+"likes": 35,
+"marque": "Sézane",
+"median": 70.0,
+"ph": "10807456415.jpg",
+"photo_url": "https://images1.vinted.net/t/02_00b95_V5cx7aEzZ88ZiJhqv4Qqh1Pr/310x430/2dd85540.webp?s=8454e3ab4dd48c72578daafa538965cf8fe796ae",
+"prix": 125.0,
+"publie": 1794733442.479296,
+"recherche": "Sézane",
+"semaine": "2026-46",
+"taille": "M",
+"titre": "Superbe pull Sezane Tobias marron chiné taille M",
+"url": "https://www.vinted.fr/items/10807456415-superbe-pull-sezane-tobias-marron-chine-taille-m",
+"vendu": 1794734426.591997
+},
 "10807729057": {
 "couleur": "Noir",
 "delai_h": 0.56,
@@ -6117,25 +6117,6 @@
 "taille": "M",
 "titre": "Parka homme AIGLE Gore Tex",
 "url": "https://www.vinted.fr/items/10807729057-parka-homme-aigle-gore-tex",
-"vendu": 1794675043.581627
-},
-"10808155651": {
-"couleur": "Marine",
-"delai_h": 0.27,
-"etat": "Très bon état",
-"id": "10808155651",
-"likes": 0,
-"marque": "Sézane",
-"median": 70.0,
-"ph": "10808155651.jpg",
-"photo_url": "https://images1.vinted.net/t/06_00848_rJfGgRAmRVvDN1UYnQdrpuWo/310x430/d5dedd57.webp?s=a510e084d61da8cba8bc6dd13749a9426ce3e442",
-"prix": 110.0,
-"publie": 1794674058.4551895,
-"recherche": "Sézane",
-"semaine": "2026-46",
-"taille": "EU 34",
-"titre": "Pantalon en cuir Sézane",
-"url": "https://www.vinted.fr/items/10808155651-pantalon-en-cuir-sezane",
 "vendu": 1794675043.581627
 },
 "10808675920": {
@@ -6289,6 +6270,25 @@
 "titre": "Gilet Émile Sézane T.M",
 "url": "https://www.vinted.fr/items/10812541898-gilet-emile-sezane-tm",
 "vendu": 1794692966.9634085
+},
+"10816519518": {
+"couleur": "Marron, Beige",
+"delai_h": 0.27,
+"etat": "Très bon état",
+"id": "10816519518",
+"likes": 0,
+"marque": "Gerard Darel",
+"median": 110.0,
+"ph": "10816519518.jpg",
+"photo_url": "https://images1.vinted.net/t/02_025c6_YJ5Ctj9ixG7Un7C77Jk6dNnu/310x430/0eb73cdc.webp?s=d14a48a0e6384003f9b603098a546667a955db54",
+"prix": 180.0,
+"publie": 1794733442.479296,
+"recherche": "Gérard Darel",
+"semaine": "2026-46",
+"taille": "EU 40",
+"titre": "Manteau en cuir de veau Gérard Darel",
+"url": "https://www.vinted.fr/items/10816519518-manteau-en-cuir-de-veau-gerard-darel",
+"vendu": 1794734426.591997
 },
 "9375584784": {
 "couleur": "Beige, Noir",
