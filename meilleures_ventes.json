@@ -1,5 +1,5 @@
 {
-"enregistre": 1794767376.6051872,
+"enregistre": 1794778231.2255712,
 "ventes": {
 "10403973563": {
 "couleur": "",
@@ -2908,25 +2908,6 @@
 "url": "https://www.vinted.fr/items/10665477483-arket-daunenmantel",
 "vendu": 1793812507.547718
 },
-"10672686872": {
-"couleur": "Gris",
-"delai_h": 0.28,
-"etat": "Très bon état",
-"id": "10672686872",
-"likes": 2,
-"marque": "Bellerose",
-"median": 145.0,
-"ph": "10672686872.jpg",
-"photo_url": "https://images1.vinted.net/t/06_00bf0_o2dfFdBe3QCoWT46b3Ev3ynz/310x430/ad69fcc3.webp?s=739afa7afb19d9223ef3788ae94056587be16f8c",
-"prix": 145.0,
-"publie": 1793868655.623712,
-"recherche": "Bellerose",
-"semaine": "2026-45",
-"taille": "M",
-"titre": "Bellerose jas",
-"url": "https://www.vinted.fr/items/10672686872-bellerose-jas",
-"vendu": 1793869660.7983575
-},
 "10672712597": {
 "couleur": "Noir",
 "delai_h": 0.28,
@@ -3173,6 +3154,25 @@
 "titre": "Barbour Giacche trapuntare",
 "url": "https://www.vinted.fr/items/10684794577-barbour-giacche-trapuntare",
 "vendu": 1793949889.8381152
+},
+"10685062452": {
+"couleur": "Marron, Bleu",
+"delai_h": 0.27,
+"etat": "Très bon état",
+"id": "10685062452",
+"likes": 5,
+"marque": "Bellerose",
+"median": 120.0,
+"ph": "10685062452.jpg",
+"photo_url": "https://images1.vinted.net/t/02_009dc_hk5BtCcRxz75A5kfLRAKa8EQ/310x430/33a44df0.webp?s=515f8af1bf55b198404088a0a5d293d58bf37a24",
+"prix": 120.0,
+"publie": 1793952942.134887,
+"recherche": "Bellerose",
+"semaine": "2026-45",
+"taille": "M",
+"titre": "Parka Bellerose taille 1",
+"url": "https://www.vinted.fr/items/10685062452-parka-bellerose-taille-1",
+"vendu": 1793953927.3711572
 },
 "10685755924": {
 "couleur": "Noir",
@@ -5302,25 +5302,6 @@
 "url": "https://www.vinted.fr/items/10785523953-wollmantel-mantel-arket",
 "vendu": 1794529044.8166668
 },
-"10787612834": {
-"couleur": "Rouge",
-"delai_h": 0.55,
-"etat": "Très bon état",
-"id": "10787612834",
-"likes": 63,
-"marque": "Balzac Paris",
-"median": 80.0,
-"ph": "10787612834.jpg",
-"photo_url": "https://images1.vinted.net/t/05_023b7_cA3BmWqJWbz5EF93km9tvQLs/310x430/74750c9b.webp?s=21bf139f017ea3408f0a12bf76858f1ce63d143d",
-"prix": 85.0,
-"publie": 1794558406.6542087,
-"recherche": "Balzac Paris",
-"semaine": "2026-46",
-"taille": "M",
-"titre": "Sweat Balzac Tammy liberty",
-"url": "https://www.vinted.fr/items/10787612834-sweat-balzac-tammy-liberty",
-"vendu": 1794560397.3699586
-},
 "10787635393": {
 "couleur": "Beige",
 "delai_h": 2.22,
@@ -6327,6 +6308,25 @@
 "titre": "Blouson cuir noir prix neuf 490 €",
 "url": "https://www.vinted.fr/items/10828346517-blouson-cuir-noir-prix-neuf-490-eur",
 "vendu": 1794768374.0215662
+},
+"10829886385": {
+"couleur": "Marron, Noir",
+"delai_h": 0.53,
+"etat": "Très bon état",
+"id": "10829886385",
+"likes": 14,
+"marque": "Balzac Paris",
+"median": 80.0,
+"ph": "10829886385.jpg",
+"photo_url": "https://images1.vinted.net/t/02_01dc1_KTbRwyGPxRmZ4jcJX2v62jSd/310x430/ad45c044.webp?s=b0efbd608796d59c88cbca7f7d551a2059beb556",
+"prix": 84.99,
+"publie": 1794775331.7416344,
+"recherche": "Balzac Paris",
+"semaine": "2026-46",
+"taille": "S",
+"titre": "Pantalon Balzac Modèle Piana léopard",
+"url": "https://www.vinted.fr/items/10829886385-pantalon-balzac-modele-piana-leopard",
+"vendu": 1794777257.2231345
 },
 "9375584784": {
 "couleur": "Beige, Noir",
