@@ -1,5 +1,5 @@
 {
-"enregistre": 1794895320.3728755,
+"enregistre": 1794906273.9739516,
 "ventes": {
 "10291866434": {
 "couleur": "Marine, Marron",
@@ -6613,25 +6613,6 @@
 "url": "https://www.vinted.fr/items/10836078789-barbour-liddesdale-quilted-jas-zwart-maat-eu-48-uk-22",
 "vendu": 1794830638.5160592
 },
-"10836107901": {
-"couleur": "Beige",
-"delai_h": 1.11,
-"etat": "Très bon état",
-"id": "10836107901",
-"likes": 22,
-"marque": "Ba&sh",
-"median": 80.0,
-"ph": "10836107901.jpg",
-"photo_url": "https://images1.vinted.net/t/06_02341_GsDFSdJXhXJ4mvXwddHzHFEz/310x430/68913542.webp?s=6847e3678bd2965cb157ac903dc4c93ff2383091",
-"prix": 80.0,
-"publie": 1794821742.6322284,
-"recherche": "Ba&sh",
-"semaine": "2026-47",
-"taille": "EU 32",
-"titre": "Pull Ba&sh T0 (36)",
-"url": "https://www.vinted.fr/items/10836107901-pull-bash-t0-36",
-"vendu": 1794825722.9817338
-},
 "10836290512": {
 "couleur": "Beige",
 "delai_h": 1.1,
@@ -7638,6 +7619,25 @@
 "titre": "Doudoune pyrenex",
 "url": "https://www.vinted.fr/items/10847027323-doudoune-pyrenex",
 "vendu": 1794873302.5750577
+},
+"10849932474": {
+"couleur": "Gris",
+"delai_h": 0.29,
+"etat": "Très bon état",
+"id": "10849932474",
+"likes": 1,
+"marque": "Ba&sh",
+"median": 80.0,
+"ph": "10849932474.jpg",
+"photo_url": "https://images1.vinted.net/t/01_00471_Qch4J5nVkqbZM2GcNgvYKcQc/310x430/1af7e52f.webp?s=6b1cbb244bcf7da9c5e86de301362dd279160d79",
+"prix": 80.0,
+"publie": 1794905242.4498825,
+"recherche": "Ba&sh",
+"semaine": "2026-47",
+"taille": "M",
+"titre": "Très beau manteau chic",
+"url": "https://www.vinted.fr/items/10849932474-tres-beau-manteau-chic",
+"vendu": 1794906273.9739516
 },
 "9375584784": {
 "couleur": "Beige, Noir",
