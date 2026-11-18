@@ -1,5 +1,5 @@
 {
-"enregistre": 1794995670.7605102,
+"enregistre": 1795006805.8668227,
 "ventes": {
 "10291866434": {
 "couleur": "Marine, Marron",
@@ -7069,25 +7069,6 @@
 "url": "https://www.vinted.fr/items/10844973302-veste-noir-uniqlo",
 "vendu": 1794860703.3529358
 },
-"10845076895": {
-"couleur": "Marron, Marine",
-"delai_h": 0.56,
-"etat": "Très bon état",
-"id": "10845076895",
-"likes": 18,
-"marque": "Balzac Paris",
-"median": 80.0,
-"ph": "10845076895.jpg",
-"photo_url": "https://images1.vinted.net/t/05_01f13_5gKdJcRSidzrCEs153gDGkRB/310x430/a71c86ed.webp?s=da563cd31e181904e4cf605a1b97b81ce663c924",
-"prix": 115.0,
-"publie": 1794859698.346387,
-"recherche": "Balzac Paris",
-"semaine": "2026-47",
-"taille": "M",
-"titre": "Cardigan Balzac Paris léopard manches rayées alpaga mérinos – Taille M",
-"url": "https://www.vinted.fr/items/10845076895-cardigan-balzac-paris-leopard-manches-rayees-alpaga-merinos-taille-m",
-"vendu": 1794861714.9270866
-},
 "10845368670": {
 "couleur": "Noir",
 "delai_h": 0.55,
@@ -7847,6 +7828,25 @@
 "titre": "Coat COS navy/brown",
 "url": "https://www.vinted.fr/items/10864332870-coat-cos-navybrown",
 "vendu": 1794995670.7605102
+},
+"10864590280": {
+"couleur": "Bleu, Blanc",
+"delai_h": 0.27,
+"etat": "Très bon état",
+"id": "10864590280",
+"likes": 15,
+"marque": "Balzac Paris",
+"median": 80.0,
+"ph": "10864590280.jpg",
+"photo_url": "https://images1.vinted.net/t/01_00681_1MMBe4v95qeJAUp9KUB77P7j/310x430/3f39aecc.webp?s=9c231f0e2e015af375f1f2cc8a2929049c88fbda",
+"prix": 80.0,
+"publie": 1794995670.7605102,
+"recherche": "Balzac Paris",
+"semaine": "2026-47",
+"taille": "XS",
+"titre": "Chemise Balzac Paris",
+"url": "https://www.vinted.fr/items/10864590280-chemise-balzac-paris",
+"vendu": 1794996657.8360689
 },
 "9375584784": {
 "couleur": "Beige, Noir",
