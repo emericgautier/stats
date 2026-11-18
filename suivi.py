@@ -69,6 +69,10 @@ MODELE_ECART = 0.25        # … avec au moins 2 ventes sur 3 à ± 25 % du prix
 BASE_ENREGISTRER_H = 3     # la base est enregistrée dans le dépôt au plus toutes les X heures
 COPIE_MARQUE = False        # True : copie de chaque vente sur le sujet de sa marque (sujet-marque) en plus du sujet principal
 RESUME_JOUR, RESUME_HEURE = 0, 8  # résumé de la semaine le lundi (0) à partir de 8 h
+DECOUVERTE = "Découverte"   # recherches sans marque dont le nom commence par ce mot : servent à repérer de nouvelles marques
+MAX_VERIFS_DECOUVERTE = 80 # vérifications réservées aux recherches « Découverte » par passage (pris sur MAX_VERIFS_PAR_PASSAGE)
+DECOUVERTE_MIN_VENTES = 2  # ventes minimum sur CLASSEMENT_J jours pour qu'une marque apparaisse dans « Découvertes »
+DECOUVERTE_ALERTE = 3      # notification ntfy quand une marque non suivie atteint X ventes sur CLASSEMENT_J jours
 LIKES_PAGES = 3            # pages lues par recherche « likes » (96 annonces par page, les plus récentes)
 LIKES_GARDE_H = 24         # annonces gardées X heures après leur mise en ligne
 LIKES_MIN = 3              # likes minimum pour apparaître dans « Likes rapides »
@@ -406,7 +410,14 @@ def par_marque(annonces):
     return out
 
 
+def est_decouverte(nom_recherche):
+    return (nom_recherche or "").startswith(DECOUVERTE)
+
+
 # ---------------------------------------------------------------- état
+
+NOMS_RECHERCHES = []  # noms de toutes les recherches (secret et fichier), retirées comprises
+
 
 def lire_recherches():
     global BASE
@@ -431,6 +442,8 @@ def lire_recherches():
             out.append((nom, url))
     # Une recherche du fichier qui porte le nom d'une recherche du secret la remplace
     out = list({nom: (nom, url) for nom, url in out}.values())
+    global NOMS_RECHERCHES
+    NOMS_RECHERCHES = [nom for nom, _ in out]
     retirees = lire_retirees()
     out = [(nom, url) for nom, url in out if nom not in retirees]
     prix_min = lire_prix_min()
@@ -647,7 +660,7 @@ def classement(etat, t0):
     debut = t0 - CLASSEMENT_J * 86400
     par = {}
     for a in etat["annonces"].values():
-        if a.get("publie") and a["publie"] >= debut:
+        if a.get("publie") and a["publie"] >= debut and not est_decouverte(a["recherche"]):
             par.setdefault(a["recherche"], []).append(a)
     out = []
     for nom, lst in par.items():
@@ -667,6 +680,98 @@ def classement(etat, t0):
     # Les ventes rapides comptent d'abord, puis la part vendue en moins de 24 h
     out.sort(key=lambda c: (c["v24"] * c["taux"], c["v24"], c["median"]), reverse=True)
     return out
+
+
+def _compact(t):
+    return re.sub(r"[^a-z0-9]", "", _nz(t or ""))
+
+
+def statut_marque(marque, etat):
+    """« suivie », « pause » ou « nouvelle » : la marque est-elle déjà dans une recherche ?"""
+    m = _compact(marque)
+    if not m:
+        return "nouvelle"
+    retirees = lire_retirees()
+
+    def couvre(nom):
+        n = _compact(nom)
+        mot = _compact((nom.split() or [""])[0])
+        return n.startswith(m) or m == mot or (len(mot) >= 4 and m.startswith(mot))
+    statut = "nouvelle"
+    noms = set(NOMS_RECHERCHES) | set(etat.get("recherches_vues", []))
+    for nom in noms:
+        if est_decouverte(nom) or not couvre(nom):
+            continue
+        if nom not in retirees:
+            return "suivie"
+        statut = "pause"
+    # Recherches du secret dont le nom ne cite pas la marque : d'après les marques de leurs annonces
+    for a in etat["annonces"].values():
+        if not est_decouverte(a["recherche"]) and _compact(a.get("marque")) == m:
+            if a["recherche"] not in retirees:
+                return "suivie"
+            statut = "pause"
+    return statut
+
+
+def decouvertes(etat, t0):
+    """Ventes des recherches « Découverte » sur CLASSEMENT_J jours, regroupées par marque, avec leurs modèles."""
+    debut = t0 - CLASSEMENT_J * 86400
+    par = {}
+    for a in etat["annonces"].values():
+        if (est_decouverte(a["recherche"]) and a["statut"] == "vendu" and a["prix"] is not None
+                and (a.get("vendu_vu") or 0) >= debut and (a.get("marque") or "").strip()):
+            par.setdefault(_compact(a["marque"]), []).append(a)
+    out = []
+    for lst in par.values():
+        if len(lst) < DECOUVERTE_MIN_VENTES:
+            continue
+        noms = [a["marque"].strip() for a in lst]
+        marque = max(set(noms), key=noms.count)
+        med = statistics.median(a["prix"] for a in lst)
+        v24 = [a for a in lst if (heures(a.get("publie"), a["vendu_vu"]) or 1e9) <= 24]
+        exclus = set(re.findall(r"[a-z]+", _nz(marque)))
+        compte = {}
+        for a in lst:
+            for k in dict.fromkeys(mots_modele(a["titre"], exclus)):
+                compte[k] = compte.get(k, 0) + 1
+        modeles = []
+        for k, n in sorted(compte.items(), key=lambda x: (-x[1], x[0])):
+            if n < 2 or len(modeles) >= 3:
+                continue
+            formes = [m for a in lst for m in re.findall(r"[A-Za-zÀ-ÿ]{3,}", a["titre"]) if cle_modele(_nz(m)) == k]
+            modeles.append((max(set(formes), key=formes.count) if formes else k.title(), n))
+        out.append({"marque": marque, "vendus": len(lst), "v24": len(v24), "median": med, "achat": prix_achat_max(med),
+                    "type": type_vetement(a["titre"] for a in lst), "modeles": modeles,
+                    "recherches": sorted({a["recherche"][len(DECOUVERTE):].strip() for a in lst}),
+                    "statut": statut_marque(marque, etat),
+                    "exemples": sorted(lst, key=lambda a: heures(a.get("publie"), a["vendu_vu"]) or 1e9)[:4]})
+    # Nouvelles marques d'abord, puis les plus vendues
+    ordre = {"nouvelle": 0, "pause": 1, "suivie": 2}
+    out.sort(key=lambda d: (ordre[d["statut"]], -d["vendus"], -d["v24"], -d["median"]))
+    return out
+
+
+def alerte_decouvertes(etat, t0):
+    """Une notification par marque non suivie qui atteint DECOUVERTE_ALERTE ventes, au plus une fois par semaine."""
+    semaine = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris")).strftime("%G-%V")
+    deja = etat.setdefault("decouvertes_notifiees", {})
+    for k in [k for k, s in deja.items() if s != semaine]:
+        del deja[k]
+    for d in decouvertes(etat, t0):
+        cle = _compact(d["marque"])
+        if d["statut"] != "nouvelle" or d["vendus"] < DECOUVERTE_ALERTE or cle in deja:
+            continue
+        mod = ", ".join(f"{m} ({n})" for m, n in d["modeles"])
+        lignes = [f"{d['vendus']} ventes en {CLASSEMENT_J} j ({d['v24']} en moins de 24 h) · {', '.join(d['recherches'])}",
+                  f"Médian {fmt_prix(d['median'])} → achat ≤ {fmt_prix(round(d['achat']))}"]
+        if mod:
+            lignes.append(f"Modèles : {mod}")
+        lignes += [f"{fmt_prix(a['prix'])} · {fmt_h(heures(a.get('publie'), a['vendu_vu']))} · {a['titre']}" for a in d["exemples"][:3]]
+        page = adresse_page()
+        notifier(f"Nouvelle marque : {d['marque']}", "\n".join(lignes), lien=(page + "#decouvertes") if page else d["exemples"][0]["url"],
+                 photo=next((a["photo"] for a in d["exemples"] if a["photo"]), None), tags="mag")
+        deja[cle] = semaine
 
 
 def adresse_page():
@@ -762,8 +867,14 @@ def passage():
     a_verifier = [a for i, a in ann.items()
                   if a["statut"] in ("dispo", "reserve") and i not in presents
                   and t0 - (a.get("publie") or a["vu"]) < FENETRE_SUIVI_H * 3600]
-    a_verifier.sort(key=lambda a: a.get("publie") or a["vu"], reverse=True)
-    a_verifier = a_verifier[:MAX_VERIFS_PAR_PASSAGE]
+    # Recherches suivies d'abord (les plus récentes en premier), le reste pour les recherches « Découverte »,
+    # vérifiées à tour de rôle (jamais vérifiées, puis vérifiées il y a le plus longtemps)
+    suivies = sorted((a for a in a_verifier if not est_decouverte(a["recherche"])),
+                     key=lambda a: a.get("publie") or a["vu"], reverse=True)
+    decouv = sorted((a for a in a_verifier if est_decouverte(a["recherche"])),
+                    key=lambda a: (a.get("verifie") or 0, -(a.get("publie") or a["vu"])))
+    suivies = suivies[:MAX_VERIFS_PAR_PASSAGE - (min(MAX_VERIFS_DECOUVERTE, len(decouv)))]
+    a_verifier = suivies + decouv[:MAX_VERIFS_PAR_PASSAGE - len(suivies)]
     log(f"{len(a_verifier)} annonces à revérifier")
 
     ventes = []
@@ -771,6 +882,7 @@ def passage():
         try:
             infos = {}
             s = statut_page(a["url"], infos)
+            a["verifie"] = t0
             if infos.get("couleur"):
                 a["couleur"] = infos["couleur"]
         except requests.RequestException as e:
@@ -789,7 +901,8 @@ def passage():
         time.sleep(random.uniform(*PAUSE))
 
     # Notifications : seulement les ventes rapides
-    rapides = [a for a in ventes if (heures(a.get("publie"), a["vendu_vu"]) or 1e9) <= NOTIF_MAX_H]
+    rapides = [a for a in ventes if (heures(a.get("publie"), a["vendu_vu"]) or 1e9) <= NOTIF_MAX_H
+               and not est_decouverte(a["recherche"])]  # « Découverte » : une alerte par marque, pas par vente
     log(f"{len(ventes)} ventes détectées, dont {len(rapides)} en moins de {NOTIF_MAX_H} h")
     if est_nuit():
         # La nuit : pas de notification, les ventes rapides sont gardées pour le résumé de 7 h
@@ -819,9 +932,17 @@ def passage():
     limite = t0 - CONSERVATION_J * 86400
     for i in [i for i, a in ann.items() if (a.get("publie") or a["vu"]) < limite]:
         del ann[i]
+    # « Découverte » : beaucoup d'annonces, seules les ventes sont gardées au-delà de la fenêtre de suivi
+    for i in [i for i, a in ann.items() if est_decouverte(a["recherche"]) and a["statut"] != "vendu"
+              and t0 - (a.get("publie") or a["vu"]) > FENETRE_SUIVI_H * 3600]:
+        del ann[i]
 
     if not est_nuit():
         resume_semaine(etat, t0)
+        try:
+            alerte_decouvertes(etat, t0)
+        except Exception as e:
+            log(f"Découvertes : {e}")
 
     etat["dernier_passage"] = t0
     ecrire_etat(etat)
@@ -863,7 +984,7 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vue{touch-action:pan-y}.vue p b{font-size:18px}.vue p em.co{background:#fff;color:#1d2120}.vue p em{font-style:normal;font-weight:600;background:#2f5d50;border-radius:99px;padding:2px 9px;margin-left:6px;white-space:nowrap}.vue p{color:#fff;margin:0;font-size:14px;text-align:center}
 .vbt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}.vue .vbt button{position:static;font:600 15px system-ui;color:#fff;background:rgba(255,255,255,.18);border:0;border-radius:999px;padding:10px 16px;cursor:pointer}.vbt .auto.on{background:#2f5d50}.vbt .vit[hidden]{display:none}.vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
-.achat{font-weight:700;color:var(--accent)}.ventes{display:flex;gap:4px;flex-wrap:wrap}.body .ventes a{margin:0;font-size:12px;font-weight:600;color:var(--ink);background:var(--accent-soft);border-radius:4px;padding:1px 6px}
+.achat{font-weight:700;color:var(--accent)}.st{font-size:12px;font-weight:600;border-radius:99px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}.st-nouvelle{background:var(--hot);color:var(--bg)}.st-suivie{background:none;color:var(--muted)}.ventes{display:flex;gap:4px;flex-wrap:wrap}.body .ventes a{margin:0;font-size:12px;font-weight:600;color:var(--ink);background:var(--accent-soft);border-radius:4px;padding:1px 6px}
 .repli summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}.repli summary::-webkit-details-marker{display:none}
 .repli summary h2{margin:0}.repli summary::after{content:"▾ afficher";font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:3px 10px}
 .repli[open] summary::after{content:"▴ masquer"}.repli[open] summary{margin-bottom:8px}
@@ -923,7 +1044,8 @@ def ecrire_rapport(etat):
         """Données de la visionneuse : la photo s'ouvre en grand, avec un bouton vers l'annonce."""
         return f'data-u="{html.escape(a["url"])}" data-t="{html.escape(a["titre"])} · {fmt_prix(a["prix"])}"'
 
-    vendus = sorted([a for a in ann if a["statut"] == "vendu"], key=lambda a: a["vendu_vu"], reverse=True)
+    vendus = sorted([a for a in ann if a["statut"] == "vendu" and not est_decouverte(a["recherche"])],
+                    key=lambda a: a["vendu_vu"], reverse=True)
     cl = classement(etat, t0)
     achat_max = {c["nom"]: round(c["achat"]) for c in cl}
     cartes = []
@@ -980,6 +1102,28 @@ def ecrire_rapport(etat):
 
     section_likes = html_likes(etat, t0, zoom)
 
+    # Découvertes : marques vendues dans les recherches sans marque, les non suivies d'abord
+    etiquettes = {"nouvelle": "Nouvelle", "pause": "En pause", "suivie": "Déjà suivie"}
+    lignes_d = []
+    for d in decouvertes(etat, t0):
+        cherche = f"{BASE or 'https://www.vinted.fr'}/catalog?" + urlencode(
+            {"search_text": d["marque"], "status_ids[]": "2", "order": "newest_first"})
+        mod = ", ".join(f"{html.escape(m)} ({n})" for m, n in d["modeles"]) or "–"
+        lignes_d.append(
+            f"<tr><td><span class=\"st st-{d['statut']}\">{etiquettes[d['statut']]}</span></td>"
+            f"<td><a href=\"{html.escape(cherche)}\" target=\"_blank\" rel=\"noopener\">{html.escape(d['marque'])} ↗</a></td>"
+            f"<td class=\"achat\">≤ {fmt_prix(round(d['achat']))}</td><td>{fmt_prix(d['median'])}</td><td>{d['v24']} / {d['vendus']}</td>"
+            f"<td>{html.escape(d['type'] or '–')}</td><td>{mod}</td><td>{html.escape(', '.join(d['recherches']))}</td>"
+            f"<td><div class=\"vig\">{''.join(vignette(a) for a in d['exemples'])}</div></td></tr>")
+    nouvelles = sum(1 for l in lignes_d if "st-nouvelle" in l)
+    section_decouvertes = (
+        f"""<section id="decouvertes"><details class="repli"><summary><h2>Découvertes ({nouvelles} nouvelle{'s' if nouvelles > 1 else ''})</h2></summary><div class="tbl"><table><thead><tr><th>Marque</th><th>Nom</th><th>Achat max</th><th>Prix médian vendu</th>"""
+        f"""<th>Vendues &lt; 24 h</th><th>Type</th><th>Modèles</th><th>Recherche</th><th>Plus rapides</th></tr></thead><tbody>"""
+        f"""{''.join(lignes_d) or f'<tr><td colspan="9">Pas encore de marque vendue au moins {DECOUVERTE_MIN_VENTES} fois dans les recherches « {DECOUVERTE} » sur {CLASSEMENT_J} jours.</td></tr>'}</tbody></table></div>"""
+        f"""<p class="sub">Ventes des recherches « {DECOUVERTE} » (catégorie et prix, sans marque) sur les {CLASSEMENT_J} derniers jours, regroupées par marque. Les marques que tu ne suis pas encore sont en tête ;"""
+        f""" une notification arrive quand l'une d'elles atteint {DECOUVERTE_ALERTE} ventes. Ces recherches sont vérifiées par roulement ({MAX_VERIFS_DECOUVERTE} annonces par passage) : les chiffres sont des minimums."""
+        f""" Le nom de la marque ouvre Vinted en très bon état ; valide ensuite avec Kops ou un export Souk avant de l'ajouter au suivi.</p></details></section>""")
+
     maj = datetime.fromtimestamp(t0, ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
     page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>Ventes suivies</title>
@@ -990,6 +1134,7 @@ Le délai « ≤ » est le temps entre la mise en ligne et le moment où la vent
 {section_likes}
 {section_modeles}
 {section_cl}
+{section_decouvertes}
 {section_couleurs}
 <section><details class="repli"><summary><h2>Par recherche</h2></summary><div class="tbl"><table><thead><tr><th>Recherche</th><th>Suivies</th><th>Vendues</th><th>En &lt; 24 h</th><th>Taux 24 h</th><th>Délai médian</th><th>Prix médian</th></tr></thead>
 <tbody>{''.join(lignes) or '<tr><td colspan="7">Aucune donnée pour l’instant.</td></tr>'}</tbody></table></div>

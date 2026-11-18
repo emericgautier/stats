@@ -81,6 +81,12 @@ Pour ne plus recevoir de notifications sans arrêter le suivi, supprime le secre
 
 En haut de la page, les recherches sont classées sur les 7 derniers jours : ventes en moins de 24 h, part vendue en moins de 24 h, prix médian vendu et prix d'achat max, avec les photos des ventes les plus rapides. Chaque lundi matin, les 5 premières arrivent aussi sur le sujet ntfy principal, avec un lien vers la page.
 
+### Découvertes (nouvelles marques)
+
+Les recherches dont le nom commence par `Découverte` (dans `recherches_ajoutees.txt`) ne filtrent que la catégorie et le prix, sans marque : par défaut manteaux et vestes femme (`catalog[]=1907`) et homme (`catalog[]=2051`), très bon état, 60 € et plus. Leurs ventes ne s'affichent pas une par une et n'envoient pas de notification par vente : la section **Découvertes** de la page les regroupe par marque sur 7 jours (ventes, prix médian, achat max, modèles reconnus dans les titres, photos des plus rapides), les marques pas encore suivies en tête. Quand une marque non suivie atteint 3 ventes dans la semaine, une notification « Nouvelle marque » arrive sur le sujet principal (une fois par semaine et par marque).
+
+Ces recherches ramènent beaucoup d'annonces : elles ont au plus `MAX_VERIFS_DECOUVERTE` (80) vérifications par passage, prises sur `MAX_VERIFS_PAR_PASSAGE`, à tour de rôle. Les chiffres sont donc des minimums. Pour ajouter une catégorie, ajoute une ligne `Découverte … | adresse` sans `brand_ids[]`. Réglages : `DECOUVERTE_MIN_VENTES`, `DECOUVERTE_ALERTE`.
+
 ### Analyses
 
 Bouton **Analyses** en haut de la page : `docs/analyses/` liste les analyses par marque et par date. Pour en ajouter une, dépose le fichier HTML dans `docs/analyses/` et ajoute une ligne au tableau `A` de `docs/analyses/index.html`. La page étant publique, n'y mets pas les exports bruts.
