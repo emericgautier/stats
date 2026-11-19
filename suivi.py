@@ -34,6 +34,7 @@ FICHIER_RECHERCHES = os.path.join(ICI, "recherches.txt")  # repli local, hors d�
 FICHIER_AJOUTEES = os.path.join(ICI, "recherches_ajoutees.txt")  # recherches en plus du secret, modifiables sur GitHub
 FICHIER_PRIX_MIN = os.path.join(ICI, "prix_min.txt")  # prix minimum par recherche, modifiable sur GitHub
 FICHIER_RETIREES = os.path.join(ICI, "recherches_retirees.txt")  # recherches à ne plus suivre
+FICHIER_CONTREFACONS = os.path.join(ICI, "marques_contrefaites.txt")  # marques écartées des « Découvertes » (risque de faux)
 FICHIER_LIKES = os.path.join(ICI, "recherches_likes.txt")  # recherches lues seulement pour les likes des nouvelles annonces
 FICHIER_ETAT = os.path.join(ICI, "etat.json")
 FICHIER_ETAT_ANCIEN = os.path.join(ICI, "etat_ancien.json")  # mémoire d'avant le retrait de recherches, relue une seule fois
@@ -585,6 +586,26 @@ def lire_retirees():
         return {l.strip() for l in f if l.strip() and not l.strip().startswith("#")}
 
 
+_CONTREFACONS = None
+
+
+def marques_contrefaites():
+    """Marques à risque de contrefaçon (une par ligne), écrites en minuscules sans espaces ni accents."""
+    global _CONTREFACONS
+    if _CONTREFACONS is None:
+        _CONTREFACONS = set()
+        if os.path.exists(FICHIER_CONTREFACONS):
+            with open(FICHIER_CONTREFACONS, encoding="utf-8") as f:
+                _CONTREFACONS = {_compact(l) for l in f if l.strip() and not l.strip().startswith("#")} - {""}
+    return _CONTREFACONS
+
+
+def risque_contrefacon(marque):
+    """Vrai si la marque est dans marques_contrefaites.txt (ou commence par l'une d'elles, ex. « Moncler Grenoble »)."""
+    m = _compact(marque)
+    return bool(m) and any(m.startswith(c) for c in marques_contrefaites())
+
+
 def avec_etats(url):
     """Impose les états de ETATS à l'adresse de recherche, quels que soient ceux qu'elle contient."""
     u = urlsplit(url)
@@ -744,10 +765,10 @@ def decouvertes(etat, t0):
         out.append({"marque": marque, "vendus": len(lst), "v24": len(v24), "median": med, "achat": prix_achat_max(med),
                     "type": type_vetement(a["titre"] for a in lst), "modeles": modeles,
                     "recherches": sorted({a["recherche"][len(DECOUVERTE):].strip() for a in lst}),
-                    "statut": statut_marque(marque, etat),
+                    "statut": "risque" if risque_contrefacon(marque) else statut_marque(marque, etat),
                     "exemples": sorted(lst, key=lambda a: heures(a.get("publie"), a["vendu_vu"]) or 1e9)[:4]})
     # Nouvelles marques d'abord, puis les plus vendues
-    ordre = {"nouvelle": 0, "pause": 1, "suivie": 2}
+    ordre = {"nouvelle": 0, "pause": 1, "suivie": 2, "risque": 3}
     out.sort(key=lambda d: (ordre[d["statut"]], -d["vendus"], -d["v24"], -d["median"]))
     return out
 
@@ -828,6 +849,8 @@ def passage():
                 for it in garder_marque(items, url):
                     if est_enfant(it):
                         continue
+                    if est_decouverte(nom) and risque_contrefacon(it.get("brand_title")):
+                        continue  # risque de faux : ni suivie ni vérifiée
                     i = str(it["id"])
                     presents.add(i)
                     if i in ann:
@@ -871,7 +894,7 @@ def passage():
     # vérifiées à tour de rôle (jamais vérifiées, puis vérifiées il y a le plus longtemps)
     suivies = sorted((a for a in a_verifier if not est_decouverte(a["recherche"])),
                      key=lambda a: a.get("publie") or a["vu"], reverse=True)
-    decouv = sorted((a for a in a_verifier if est_decouverte(a["recherche"])),
+    decouv = sorted((a for a in a_verifier if est_decouverte(a["recherche"]) and not risque_contrefacon(a.get("marque"))),
                     key=lambda a: (a.get("verifie") or 0, -(a.get("publie") or a["vu"])))
     suivies = suivies[:MAX_VERIFS_PAR_PASSAGE - (min(MAX_VERIFS_DECOUVERTE, len(decouv)))]
     a_verifier = suivies + decouv[:MAX_VERIFS_PAR_PASSAGE - len(suivies)]
@@ -984,7 +1007,7 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vue{touch-action:pan-y}.vue p b{font-size:18px}.vue p em.co{background:#fff;color:#1d2120}.vue p em{font-style:normal;font-weight:600;background:#2f5d50;border-radius:99px;padding:2px 9px;margin-left:6px;white-space:nowrap}.vue p{color:#fff;margin:0;font-size:14px;text-align:center}
 .vbt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}.vue .vbt button{position:static;font:600 15px system-ui;color:#fff;background:rgba(255,255,255,.18);border:0;border-radius:999px;padding:10px 16px;cursor:pointer}.vbt .auto.on{background:#2f5d50}.vbt .vit[hidden]{display:none}.vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
 .vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
-.achat{font-weight:700;color:var(--accent)}.st{font-size:12px;font-weight:600;border-radius:99px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}.st-nouvelle{background:var(--hot);color:var(--bg)}.st-suivie{background:none;color:var(--muted)}.ventes{display:flex;gap:4px;flex-wrap:wrap}.body .ventes a{margin:0;font-size:12px;font-weight:600;color:var(--ink);background:var(--accent-soft);border-radius:4px;padding:1px 6px}
+.achat{font-weight:700;color:var(--accent)}.st{font-size:12px;font-weight:600;border-radius:99px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}.st-nouvelle{background:var(--hot);color:var(--bg)}.st-suivie{background:none;color:var(--muted)}.st-risque{background:none;color:var(--muted);text-decoration:line-through}details.risque{margin-top:8px}details.risque>summary{cursor:pointer;color:var(--muted);font-size:14px}.ventes{display:flex;gap:4px;flex-wrap:wrap}.body .ventes a{margin:0;font-size:12px;font-weight:600;color:var(--ink);background:var(--accent-soft);border-radius:4px;padding:1px 6px}
 .repli summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}.repli summary::-webkit-details-marker{display:none}
 .repli summary h2{margin:0}.repli summary::after{content:"▾ afficher";font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:3px 10px}
 .repli[open] summary::after{content:"▴ masquer"}.repli[open] summary{margin-bottom:8px}
@@ -1103,23 +1126,25 @@ def ecrire_rapport(etat):
     section_likes = html_likes(etat, t0, zoom)
 
     # Découvertes : marques vendues dans les recherches sans marque, les non suivies d'abord
-    etiquettes = {"nouvelle": "Nouvelle", "pause": "En pause", "suivie": "Déjà suivie"}
-    lignes_d = []
+    etiquettes = {"nouvelle": "Nouvelle", "pause": "En pause", "suivie": "Déjà suivie", "risque": "Risque contrefaçon"}
+    lignes_d, lignes_r = [], []
     for d in decouvertes(etat, t0):
         cherche = f"{BASE or 'https://www.vinted.fr'}/catalog?" + urlencode(
             {"search_text": d["marque"], "status_ids[]": "2", "order": "newest_first"})
         mod = ", ".join(f"{html.escape(m)} ({n})" for m, n in d["modeles"]) or "–"
-        lignes_d.append(
+        (lignes_r if d["statut"] == "risque" else lignes_d).append(
             f"<tr><td><span class=\"st st-{d['statut']}\">{etiquettes[d['statut']]}</span></td>"
             f"<td><a href=\"{html.escape(cherche)}\" target=\"_blank\" rel=\"noopener\">{html.escape(d['marque'])} ↗</a></td>"
             f"<td class=\"achat\">≤ {fmt_prix(round(d['achat']))}</td><td>{fmt_prix(d['median'])}</td><td>{d['v24']} / {d['vendus']}</td>"
             f"<td>{html.escape(d['type'] or '–')}</td><td>{mod}</td><td>{html.escape(', '.join(d['recherches']))}</td>"
             f"<td><div class=\"vig\">{''.join(vignette(a) for a in d['exemples'])}</div></td></tr>")
     nouvelles = sum(1 for l in lignes_d if "st-nouvelle" in l)
+    bloc_r = (f"""<details class="risque"><summary>Risque contrefaçon ({len(lignes_r)}) : écartées, sans notification</summary><div class="tbl"><table><tbody>{''.join(lignes_r)}</tbody></table></div>"""
+              f"""<p class="sub">Marques de <code>marques_contrefaites.txt</code> : leurs nouvelles annonces ne sont plus suivies dans les recherches « {DECOUVERTE} ». Retire une ligne du fichier pour la remettre.</p></details>""") if lignes_r else ""
     section_decouvertes = (
         f"""<section id="decouvertes"><details class="repli"><summary><h2>Découvertes ({nouvelles} nouvelle{'s' if nouvelles > 1 else ''})</h2></summary><div class="tbl"><table><thead><tr><th>Marque</th><th>Nom</th><th>Achat max</th><th>Prix médian vendu</th>"""
         f"""<th>Vendues &lt; 24 h</th><th>Type</th><th>Modèles</th><th>Recherche</th><th>Plus rapides</th></tr></thead><tbody>"""
-        f"""{''.join(lignes_d) or f'<tr><td colspan="9">Pas encore de marque vendue au moins {DECOUVERTE_MIN_VENTES} fois dans les recherches « {DECOUVERTE} » sur {CLASSEMENT_J} jours.</td></tr>'}</tbody></table></div>"""
+        f"""{''.join(lignes_d) or f'<tr><td colspan="9">Pas encore de marque vendue au moins {DECOUVERTE_MIN_VENTES} fois dans les recherches « {DECOUVERTE} » sur {CLASSEMENT_J} jours.</td></tr>'}</tbody></table></div>{bloc_r}"""
         f"""<p class="sub">Ventes des recherches « {DECOUVERTE} » (catégorie et prix, sans marque) sur les {CLASSEMENT_J} derniers jours, regroupées par marque. Les marques que tu ne suis pas encore sont en tête ;"""
         f""" une notification arrive quand l'une d'elles atteint {DECOUVERTE_ALERTE} ventes. Ces recherches sont vérifiées par roulement ({MAX_VERIFS_DECOUVERTE} annonces par passage) : les chiffres sont des minimums."""
         f""" Le nom de la marque ouvre Vinted en très bon état ; valide ensuite avec Kops ou un export Souk avant de l'ajouter au suivi.</p></details></section>""")
