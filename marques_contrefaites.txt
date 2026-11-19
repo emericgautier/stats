@@ -1,0 +1,41 @@
+# Marques souvent contrefaites, écartées des recherches « Découverte » :
+# plus de notification « Nouvelle marque », plus de vérification, repliées sur la page sous « Risque contrefaçon ».
+# Une marque par ligne (majuscules, espaces et accents ignorés). « Moncler » couvre aussi « Moncler Grenoble ».
+# N'agit pas sur tes recherches suivies (secret, recherches_ajoutees.txt).
+# Pour remettre une marque : supprime sa ligne ou mets # devant.
+
+# Déjà abandonnées
+Parajumpers
+K-Way
+Jott
+
+# Doudounes et parkas
+Moncler
+Canada Goose
+Moose Knuckles
+Mackage
+Woolrich
+Wellensteyn
+Napapijri
+Peuterey
+Mr & Mrs Italy
+The North Face
+Arc'teryx
+
+# Luxe et logos
+Stone Island
+Burberry
+Max Mara
+Louis Vuitton
+Gucci
+Prada
+Dior
+Chanel
+Hermès
+Balenciaga
+Saint Laurent
+Fendi
+Versace
+Dolce & Gabbana
+Off-White
+Lacoste

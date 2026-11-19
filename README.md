@@ -87,6 +87,8 @@ Les recherches dont le nom commence par `Découverte` (dans `recherches_ajoutees
 
 Ces recherches ramènent beaucoup d'annonces : elles ont au plus `MAX_VERIFS_DECOUVERTE` (80) vérifications par passage, prises sur `MAX_VERIFS_PAR_PASSAGE`, à tour de rôle. Les chiffres sont donc des minimums. Pour ajouter une catégorie, ajoute une ligne `Découverte … | adresse` sans `brand_ids[]`. Réglages : `DECOUVERTE_MIN_VENTES`, `DECOUVERTE_ALERTE`.
 
+Marques souvent contrefaites : celles de `marques_contrefaites.txt` (une par ligne, modifiable sur GitHub) sont écartées des recherches « Découverte » : leurs annonces ne sont plus suivies ni vérifiées, aucune notification « Nouvelle marque », et celles déjà vendues sont repliées sous **Risque contrefaçon** en bas de la section. Le fichier n'agit pas sur les recherches que tu suis toi-même.
+
 ### Analyses
 
 Bouton **Analyses** en haut de la page : `docs/analyses/` liste les analyses par marque et par date. Pour en ajouter une, dépose le fichier HTML dans `docs/analyses/` et ajoute une ligne au tableau `A` de `docs/analyses/index.html`. La page étant publique, n'y mets pas les exports bruts.
