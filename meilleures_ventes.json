@@ -1,5 +1,5 @@
 {
-"enregistre": 1795288129.948188,
+"enregistre": 1795298954.8549156,
 "ventes": {
 "10291866434": {
 "couleur": "Marine, Marron",
@@ -8152,25 +8152,6 @@
 "url": "https://www.vinted.fr/items/10908823506-abrigo-marron-chocolate",
 "vendu": 1795275294.7467504
 },
-"10908920448": {
-"couleur": "Noir",
-"delai_h": 0.28,
-"etat": "Très bon état",
-"id": "10908920448",
-"likes": 0,
-"marque": "Zavetti Canada",
-"median": 80.0,
-"ph": "10908920448.jpg",
-"photo_url": "https://images1.vinted.net/t/06_0034b_dWfyK9CnCfhGwcArsdxzxceg/310x430/e8ab736d.webp?s=22217a83b10829d6afeb2b61986ce82de0d4fcb0",
-"prix": 90.0,
-"publie": 1795274292.3102024,
-"recherche": "Zavetti Canada",
-"semaine": "2026-47",
-"taille": "XS",
-"titre": "Zavetti Canadá",
-"url": "https://www.vinted.fr/items/10908920448-zavetti-canada",
-"vendu": 1795275294.7467504
-},
 "10909245175": {
 "couleur": "Marron",
 "delai_h": 0.27,
@@ -8189,6 +8170,25 @@
 "titre": "Manteau Sézane",
 "url": "https://www.vinted.fr/items/10909245175-manteau-sezane",
 "vendu": 1795276257.891871
+},
+"10912813739": {
+"couleur": "Noir",
+"delai_h": 0.27,
+"etat": "Très bon état",
+"id": "10912813739",
+"likes": 0,
+"marque": "Zavetti Canada",
+"median": 75.0,
+"ph": "10912813739.jpg",
+"photo_url": "https://images1.vinted.net/t/06_01f21_ff376sHzDf8Xbrqui2QEM7Gd/310x430/730f0043.webp?s=d22fdb54f068617bb04ae59eb04529f4958050f4",
+"prix": 100.0,
+"publie": 1795289135.5178292,
+"recherche": "Zavetti Canada",
+"semaine": "2026-47",
+"taille": "S",
+"titre": "Zavetti Canada Winterjacke",
+"url": "https://www.vinted.fr/items/10912813739-zavetti-canada-winterjacke",
+"vendu": 1795290106.523121
 },
 "9375584784": {
 "couleur": "Beige, Noir",
