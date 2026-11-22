@@ -1,5 +1,5 @@
 {
-"enregistre": 1795376358.316913,
+"enregistre": 1795387320.702707,
 "ventes": {
 "10067905752": {
 "couleur": "Kaki",
@@ -7069,25 +7069,6 @@
 "url": "https://www.vinted.fr/items/10858855205-veste-columbia-noir-hybrid",
 "vendu": 1794945699.0964985
 },
-"10860033921": {
-"couleur": "Noir",
-"delai_h": 0.28,
-"etat": "Très bon état",
-"id": "10860033921",
-"likes": 0,
-"marque": "Zavetti Canada",
-"median": 80.0,
-"ph": "10860033921.jpg",
-"photo_url": "https://images1.vinted.net/t/06_00ef8_HUp1nnWWKgewksFBKtjm6cn3/310x430/84ec51df.webp?s=c32b32e978f07f619da044b74191a95ef6f0361e",
-"prix": 90.0,
-"publie": 1794949644.5116572,
-"recherche": "Zavetti Canada",
-"semaine": "2026-47",
-"taille": "L",
-"titre": "Zavetti Canadá chaqueta tallla L",
-"url": "https://www.vinted.fr/items/10860033921-zavetti-canada-chaqueta-tallla-l",
-"vendu": 1794950635.6816847
-},
 "10863712234": {
 "couleur": "Gris",
 "delai_h": 0.27,
@@ -8208,6 +8189,25 @@
 "titre": "K-way",
 "url": "https://www.vinted.fr/items/10929986146-k-way",
 "vendu": 1795376358.316913
+},
+"10932357622": {
+"couleur": "Noir",
+"delai_h": 0.28,
+"etat": "Très bon état",
+"id": "10932357622",
+"likes": 0,
+"marque": "Zavetti Canada",
+"median": 75.0,
+"ph": "10932357622.jpg",
+"photo_url": "https://images1.vinted.net/t/03_000f3_wgLkPFbc9MKhQbEZ7eb7ejUV/310x430/8c60b654.webp?s=b957ff40fac0937cc417800d611a7b336f1232e0",
+"prix": 300.0,
+"publie": 1795382354.5754087,
+"recherche": "Zavetti Canada",
+"semaine": "2026-47",
+"taille": "S",
+"titre": "Zavetti",
+"url": "https://www.vinted.fr/items/10932357622-zavetti",
+"vendu": 1795383375.4594545
 },
 "9375584784": {
 "couleur": "Beige, Noir",
