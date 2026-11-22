@@ -1,5 +1,5 @@
 {
-"enregistre": 1795342026.5668938,
+"enregistre": 1795353738.6738741,
 "ventes": {
 "10067905752": {
 "couleur": "Kaki",
@@ -6366,6 +6366,25 @@
 "url": "https://www.vinted.fr/items/10829886385-pantalon-balzac-modele-piana-leopard",
 "vendu": 1794777257.2231345
 },
+"10831526043": {
+"couleur": "Noir",
+"delai_h": 1.09,
+"etat": "Très bon état",
+"id": "10831526043",
+"likes": 12,
+"marque": "Uniqlo",
+"median": 49.0,
+"ph": "10831526043.jpg",
+"photo_url": "https://images1.vinted.net/t/06_0119e_Ay8uKTSF9wC7aP5NzozCR79S/310x430/2fb53ee0.webp?s=5e309279c9ef6df0fd58d4552d958b95ee6cf5fb",
+"prix": 49.0,
+"publie": 1795347845.809426,
+"recherche": "Uniqlo Harrington",
+"semaine": "2026-47",
+"taille": "XS",
+"titre": "Veste Harrington Uniqlo JW Anderson Noir | Taille XS",
+"url": "https://www.vinted.fr/items/10831526043-veste-harrington-uniqlo-jw-anderson-noir-taille-xs",
+"vendu": 1795351783.8248684
+},
 "10835363542": {
 "couleur": "Marine",
 "delai_h": 0.26,
@@ -7544,25 +7563,6 @@
 "url": "https://www.vinted.fr/items/10885936788-barbour-quilted-womens-coat",
 "vendu": 1795117457.8128185
 },
-"10886198201": {
-"couleur": "Marron",
-"delai_h": 0.27,
-"etat": "Très bon état",
-"id": "10886198201",
-"likes": 0,
-"marque": "Sézane",
-"median": 70.0,
-"ph": "10886198201.jpg",
-"photo_url": "https://images1.vinted.net/t/01_01dbc_aD4Sdp1MSxdKZhsW138m8d35/310x430/008f5426.webp?s=48c4412013b0afff8a867d9f4605b2c17bd4780f",
-"prix": 150.0,
-"publie": 1795117457.8128185,
-"recherche": "Sézane",
-"semaine": "2026-47",
-"taille": "XS",
-"titre": "Veste Thaïs Sézane",
-"url": "https://www.vinted.fr/items/10886198201-veste-thais-sezane",
-"vendu": 1795118429.4921246
-},
 "10886812582": {
 "couleur": "Noir",
 "delai_h": 0.28,
@@ -7943,25 +7943,6 @@
 "url": "https://www.vinted.fr/items/10905633491-cos-coat-with-wool",
 "vendu": 1795262588.5540564
 },
-"10906342021": {
-"couleur": "Marine",
-"delai_h": 1.36,
-"etat": "Très bon état",
-"id": "10906342021",
-"likes": 18,
-"marque": "Aigle",
-"median": 85.0,
-"ph": "10906342021.jpg",
-"photo_url": "https://images1.vinted.net/t/06_00be9_yxiXMKozoN4tohthKhPrbCoA/310x430/fb11300d.webp?s=fb29afdf2bb2d23fb8fc81dfd2661ceb9d516e22",
-"prix": 85.0,
-"publie": 1795264543.3539803,
-"recherche": "Aigle",
-"semaine": "2026-47",
-"taille": "EU 38",
-"titre": "Parka aigle",
-"url": "https://www.vinted.fr/items/10906342021-parka-aigle",
-"vendu": 1795269452.4656363
-},
 "10906562715": {
 "couleur": "Noir",
 "delai_h": 0.27,
@@ -8189,6 +8170,44 @@
 "titre": "Sezane Chocolate Leather Jacket | Size 36 | Worn once",
 "url": "https://www.vinted.fr/items/10918550146-sezane-chocolate-leather-jacket-size-36-worn-once",
 "vendu": 1795341026.54697
+},
+"10921206828": {
+"couleur": "Bleu",
+"delai_h": 0.55,
+"etat": "Très bon état",
+"id": "10921206828",
+"likes": 23,
+"marque": "Aigle",
+"median": 89.0,
+"ph": "10921206828.jpg",
+"photo_url": "https://images1.vinted.net/t/05_00cac_FVZL2e1EHwLdxet2DtH8iGSz/310x430/b5a2d0c8.webp?s=ca76ab2f676a6b43d052daa4dc97a57ff337bf8b",
+"prix": 100.0,
+"publie": 1795348831.168826,
+"recherche": "Aigle",
+"semaine": "2026-47",
+"taille": "EU 40",
+"titre": "AIGE Daunenmantel blau",
+"url": "https://www.vinted.fr/items/10921206828-aige-daunenmantel-blau",
+"vendu": 1795350809.3806581
+},
+"10922790876": {
+"couleur": "Noir",
+"delai_h": 0.26,
+"etat": "Très bon état",
+"id": "10922790876",
+"likes": 0,
+"marque": "Sézane",
+"median": 70.0,
+"ph": "10922790876.jpg",
+"photo_url": "https://images1.vinted.net/t/05_01654_htDyE9PWWocG9WGn2DPGsVag/310x430/68e809d2.webp?s=1849bf7743627f3eb77fd02115625add79113c8f",
+"prix": 70.0,
+"publie": 1795353738.6738741,
+"recherche": "Sézane",
+"semaine": "2026-47",
+"taille": "EU 46",
+"titre": "Blouse Sézane 46",
+"url": "https://www.vinted.fr/items/10922790876-blouse-sezane-46",
+"vendu": 1795354676.009245
 },
 "9375584784": {
 "couleur": "Beige, Noir",
