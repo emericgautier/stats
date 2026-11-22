@@ -752,16 +752,25 @@ def decouvertes(etat, t0):
         med = statistics.median(a["prix"] for a in lst)
         v24 = [a for a in lst if (heures(a.get("publie"), a["vendu_vu"]) or 1e9) <= 24]
         exclus = set(re.findall(r"[a-z]+", _nz(marque)))
-        compte = {}
+        # Modèles : chaque vente va à son mot de modèle le plus fréquent, pour avoir le prix et l'achat max par modèle
+        compte, mots = {}, {}
         for a in lst:
-            for k in dict.fromkeys(mots_modele(a["titre"], exclus)):
+            mots[id(a)] = list(dict.fromkeys(mots_modele(a["titre"], exclus)))
+            for k in mots[id(a)]:
                 compte[k] = compte.get(k, 0) + 1
+        groupes = {}
+        for a in lst:
+            if mots[id(a)]:
+                groupes.setdefault(max(mots[id(a)], key=lambda k: (compte[k], k)), []).append(a)
         modeles = []
-        for k, n in sorted(compte.items(), key=lambda x: (-x[1], x[0])):
-            if n < 2 or len(modeles) >= 3:
+        for k, g in sorted(groupes.items(), key=lambda x: (-len(x[1]), x[0])):
+            if len(g) < 2 or len(modeles) >= 3:
                 continue
-            formes = [m for a in lst for m in re.findall(r"[A-Za-zÀ-ÿ]{3,}", a["titre"]) if cle_modele(_nz(m)) == k]
-            modeles.append((max(set(formes), key=formes.count) if formes else k.title(), n))
+            formes = [m for a in g for m in re.findall(r"[A-Za-zÀ-ÿ]{3,}", a["titre"]) if cle_modele(_nz(m)) == k]
+            m_med = statistics.median(a["prix"] for a in g)
+            modeles.append({"nom": max(set(formes), key=formes.count) if formes else k.title(), "n": len(g),
+                            "median": m_med, "achat": prix_achat_max(m_med),
+                            "v24": sum(1 for a in g if (heures(a.get("publie"), a["vendu_vu"]) or 1e9) <= 24)})
         out.append({"marque": marque, "vendus": len(lst), "v24": len(v24), "median": med, "achat": prix_achat_max(med),
                     "type": type_vetement(a["titre"] for a in lst), "modeles": modeles,
                     "recherches": sorted({a["recherche"][len(DECOUVERTE):].strip() for a in lst}),
@@ -1006,7 +1015,7 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vph .d{font-size:14px}.vue .fl{position:absolute;top:50%;transform:translateY(-50%);font:600 40px/1 system-ui;color:#fff;background:rgba(255,255,255,.14);border:0;border-radius:99px;width:48px;height:48px;padding:0;cursor:pointer}.vue .fl.pv{left:8px;right:auto}.vue .fl.nx{right:8px}
 .vue{touch-action:pan-y}.vue p b{font-size:18px}.vue p em.co{background:#fff;color:#1d2120}.vue p em{font-style:normal;font-weight:600;background:#2f5d50;border-radius:99px;padding:2px 9px;margin-left:6px;white-space:nowrap}.vue p{color:#fff;margin:0;font-size:14px;text-align:center}
 .vbt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}.vue .vbt button{position:static;font:600 15px system-ui;color:#fff;background:rgba(255,255,255,.18);border:0;border-radius:999px;padding:10px 16px;cursor:pointer}.vbt .auto.on{background:#2f5d50}.vbt .vit[hidden]{display:none}.vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
-.vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
+.mod{white-space:nowrap;line-height:1.6}.vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
 .achat{font-weight:700;color:var(--accent)}.st{font-size:12px;font-weight:600;border-radius:99px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}.st-nouvelle{background:var(--hot);color:var(--bg)}.st-suivie{background:none;color:var(--muted)}.st-risque{background:none;color:var(--muted);text-decoration:line-through}details.risque{margin-top:8px}details.risque>summary{cursor:pointer;color:var(--muted);font-size:14px}.ventes{display:flex;gap:4px;flex-wrap:wrap}.body .ventes a{margin:0;font-size:12px;font-weight:600;color:var(--ink);background:var(--accent-soft);border-radius:4px;padding:1px 6px}
 .repli summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}.repli summary::-webkit-details-marker{display:none}
 .repli summary h2{margin:0}.repli summary::after{content:"▾ afficher";font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:3px 10px}
@@ -1131,7 +1140,11 @@ def ecrire_rapport(etat):
     for d in decouvertes(etat, t0):
         cherche = f"{BASE or 'https://www.vinted.fr'}/catalog?" + urlencode(
             {"search_text": d["marque"], "status_ids[]": "2", "order": "newest_first"})
-        mod = ", ".join(f"{html.escape(m)} ({n})" for m, n in d["modeles"]) or "–"
+        mod = "".join(
+            f'<div class="mod"><a href="{html.escape(BASE or "https://www.vinted.fr")}/catalog?{html.escape(urlencode({"search_text": d["marque"] + " " + m["nom"], "status_ids[]": "2", "order": "newest_first"}))}"'
+            f' target="_blank" rel="noopener">{html.escape(m["nom"])}</a> · {m["n"]} vendu{"s" if m["n"] > 1 else ""}'
+            f'{(" dont %d &lt; 24 h" % m["v24"]) if m["v24"] else ""} · méd. {fmt_prix(m["median"])} · <b class="achat">≤ {fmt_prix(round(m["achat"]))}</b></div>'
+            for m in d["modeles"]) or "–"
         (lignes_r if d["statut"] == "risque" else lignes_d).append(
             f"<tr><td><span class=\"st st-{d['statut']}\">{etiquettes[d['statut']]}</span></td>"
             f"<td><a href=\"{html.escape(cherche)}\" target=\"_blank\" rel=\"noopener\">{html.escape(d['marque'])} ↗</a></td>"
@@ -1230,7 +1243,7 @@ if(c){{var d=c.querySelector('.b.d');bd.textContent=d.textContent;bd.className=d
 var b=document.createElement('b');b.textContent=c.querySelector('.b.p').textContent;t.append(b,' · '+c.querySelector('.body .t').textContent+(c.dataset.s?' · taille '+c.dataset.s:''));
 if(c.dataset.c){{var co=document.createElement('em');co.className='co';co.textContent=c.dataset.c;t.append(co)}}
 if(c.dataset.x){{var e=document.createElement('em');e.textContent=c.dataset.x;t.append(e)}}if(L.length>1)t.append(' · '+(k+1)+' / '+L.length)}}
-else{{bd.hidden=true;t.textContent=x.dataset.t}}
+else{{bd.hidden=true;t.textContent=x.dataset.t+(L.length>1?' · '+(k+1)+' / '+L.length:'')}}
 pv.hidden=nx.hidden=L.length<2;if(L.length>1){{var n=new Image();n.referrerPolicy='no-referrer';n.src=L[(k+1)%L.length].src}}}}
 function va(s){{if(L.length<2)return;k=(k+s+L.length)%L.length;show();if(tic)lancer()}}
 // Défilement automatique : ▶ Auto / ❚❚ Pause, vitesse au choix (gardée sur l'appareil)
@@ -1243,7 +1256,8 @@ bv.onclick=function(){{dt=VIT[(VIT.indexOf(dt)+1)%VIT.length]||3;try{{localStora
 l.addEventListener('click',arreter);document.addEventListener('visibilitychange',function(){{if(document.hidden)arreter()}});
 function fermer(){{arreter();v.hidden=true;im.removeAttribute('src');document.body.style.overflow=''}}
 document.addEventListener('click',function(e){{var x=e.target.closest('img[data-u]');if(!x||v.contains(x))return;e.preventDefault();
-var g=x.closest('.card')&&x.closest('.grid');L=g?[].slice.call(g.querySelectorAll('.card:not([hidden]):not(.masq) .ph img[data-u]')):[x];k=Math.max(0,L.indexOf(x));
+var g=x.closest('.card')&&x.closest('.grid'),s=!g&&x.closest('.vig')&&x.closest('section');
+L=g?[].slice.call(g.querySelectorAll('.card:not([hidden]):not(.masq) .ph img[data-u]')):s?[].slice.call(s.querySelectorAll('.vig img[data-u]')).filter(function(i){{return i.offsetParent||i===x}}):[x];k=Math.max(0,L.indexOf(x));
 show();arreter();v.hidden=false;document.body.style.overflow='hidden'}});
 pv.onclick=function(){{va(-1)}};nx.onclick=function(){{va(1)}};
 v.addEventListener('click',function(e){{if(e.target===v||e.target.classList.contains('x'))fermer()}});
