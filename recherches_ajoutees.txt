@@ -20,6 +20,7 @@ Aigle | https://www.vinted.fr/catalog?brand_ids[]=2661&status_ids[]=2&price_from
 Uniqlo manteaux | https://www.vinted.fr/catalog?catalog[]=1907&catalog[]=2051&brand_ids[]=1153&status_ids[]=2&price_from=45&currency=EUR&order=newest_first
 Columbia | https://www.vinted.fr/catalog?brand_ids[]=17161&status_ids[]=2&price_from=65&currency=EUR&order=newest_first&marque=Columbia
 Save the Duck doudoune | https://www.vinted.fr/catalog?catalog[]=1907&catalog[]=2051&brand_ids[]=341007&status_ids[]=2&price_from=60&currency=EUR&order=newest_first&marque=Save The Duck
+Marc O'Polo doudoune | https://www.vinted.fr/catalog?catalog[]=1907&catalog[]=2051&brand_ids[]=17251&status_ids[]=2&price_from=60&currency=EUR&order=newest_first&marque=Marc O'Polo
 # Recherches « Découverte » : catégorie et prix, sans marque, pour repérer de nouvelles marques (section Découvertes de la page)
 Découverte manteaux femme | https://www.vinted.fr/catalog?catalog[]=1907&status_ids[]=2&price_from=60&currency=EUR&order=newest_first
 Découverte manteaux homme | https://www.vinted.fr/catalog?catalog[]=2051&status_ids[]=2&price_from=60&currency=EUR&order=newest_first
