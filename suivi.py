@@ -1015,7 +1015,7 @@ img[data-u]{cursor:zoom-in}.vue{position:fixed;inset:0;z-index:10;background:rgb
 .vph .d{font-size:14px}.vue .fl{position:absolute;top:50%;transform:translateY(-50%);font:600 40px/1 system-ui;color:#fff;background:rgba(255,255,255,.14);border:0;border-radius:99px;width:48px;height:48px;padding:0;cursor:pointer}.vue .fl.pv{left:8px;right:auto}.vue .fl.nx{right:8px}
 .vue{touch-action:pan-y}.vue p b{font-size:18px}.vue p em.co{background:#fff;color:#1d2120}.vue p em{font-style:normal;font-weight:600;background:#2f5d50;border-radius:99px;padding:2px 9px;margin-left:6px;white-space:nowrap}.vue p{color:#fff;margin:0;font-size:14px;text-align:center}
 .vbt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}.vue .vbt button{position:static;font:600 15px system-ui;color:#fff;background:rgba(255,255,255,.18);border:0;border-radius:999px;padding:10px 16px;cursor:pointer}.vbt .auto.on{background:#2f5d50}.vbt .vit[hidden]{display:none}.vue a{background:#fff;color:#1d2120;font-weight:700;text-decoration:none;border-radius:999px;padding:10px 20px}.vue button{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;font:600 28px/1 system-ui;color:#fff;background:none;border:0;padding:8px}
-.mod{white-space:nowrap;line-height:1.6}.vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:8px}.dc{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}.vig.dph{display:grid;grid-template-columns:repeat(4,1fr);gap:2px}.vig.dph a{width:auto;height:auto;border-radius:0;overflow:visible;position:relative;display:block;aspect-ratio:3/4;background:var(--accent-soft)}.vig.dph img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}.dph span{position:absolute;left:0;right:0;bottom:0;font-size:11px;font-weight:600;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.65));padding:8px 3px 2px;text-align:center}.dtx{padding:6px 10px 8px}.dt{margin:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:600}.dt .achat{margin-left:auto}.di{margin:2px 0 0;font-size:13px;color:var(--muted)}.dc ul{margin:4px 0 0;padding:0;list-style:none;font-size:13px}.dc li{line-height:1.5}.vig{display:flex;gap:4px}.vig a{display:block;width:44px;height:58px;border-radius:4px;overflow:hidden;background:var(--accent-soft)}.vig img{width:100%;height:100%;object-fit:cover}
 .achat{font-weight:700;color:var(--accent)}.st{font-size:12px;font-weight:600;border-radius:99px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}.st-nouvelle{background:var(--hot);color:var(--bg)}.st-suivie{background:none;color:var(--muted)}.st-risque{background:none;color:var(--muted);text-decoration:line-through}details.risque{margin-top:8px}details.risque>summary{cursor:pointer;color:var(--muted);font-size:14px}.ventes{display:flex;gap:4px;flex-wrap:wrap}.body .ventes a{margin:0;font-size:12px;font-weight:600;color:var(--ink);background:var(--accent-soft);border-radius:4px;padding:1px 6px}
 .repli summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}.repli summary::-webkit-details-marker{display:none}
 .repli summary h2{margin:0}.repli summary::after{content:"▾ afficher";font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:3px 10px}
@@ -1137,27 +1137,35 @@ def ecrire_rapport(etat):
     # Découvertes : marques vendues dans les recherches sans marque, les non suivies d'abord
     etiquettes = {"nouvelle": "Nouvelle", "pause": "En pause", "suivie": "Déjà suivie", "risque": "Risque contrefaçon"}
     lignes_d, lignes_r = [], []
+    vinted = BASE or "https://www.vinted.fr"
+
+    def lien_vinted(texte):
+        return f"{vinted}/catalog?" + urlencode({"search_text": texte, "status_ids[]": "2", "order": "newest_first"})
+
     for d in decouvertes(etat, t0):
-        cherche = f"{BASE or 'https://www.vinted.fr'}/catalog?" + urlencode(
-            {"search_text": d["marque"], "status_ids[]": "2", "order": "newest_first"})
+        achat = f"achat max ≤ {fmt_prix(round(d['achat']))}"
+        photos = "".join(
+            f'<a href="{html.escape(a["url"])}" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" alt=""'
+            f' src="{html.escape(a["photo"])}" data-u="{html.escape(a["url"])}" data-t="{html.escape(d["marque"])} · {html.escape(a["titre"])} · {fmt_prix(a["prix"])}"'
+            f' data-x="{html.escape(achat)}"><span>{fmt_prix(a["prix"])} · {fmt_h(heures(a.get("publie"), a["vendu_vu"]))}</span></a>'
+            for a in d["exemples"] if a["photo"])
         mod = "".join(
-            f'<div class="mod"><a href="{html.escape(BASE or "https://www.vinted.fr")}/catalog?{html.escape(urlencode({"search_text": d["marque"] + " " + m["nom"], "status_ids[]": "2", "order": "newest_first"}))}"'
-            f' target="_blank" rel="noopener">{html.escape(m["nom"])}</a> · {m["n"]} vendu{"s" if m["n"] > 1 else ""}'
-            f'{(" dont %d &lt; 24 h" % m["v24"]) if m["v24"] else ""} · méd. {fmt_prix(m["median"])} · <b class="achat">≤ {fmt_prix(round(m["achat"]))}</b></div>'
-            for m in d["modeles"]) or "–"
+            f'<li><a href="{html.escape(lien_vinted(d["marque"] + " " + m["nom"]))}" target="_blank" rel="noopener">{html.escape(m["nom"])}</a>'
+            f' {m["n"]}× · méd. {fmt_prix(m["median"])} · <b class="achat">≤ {fmt_prix(round(m["achat"]))}</b></li>'
+            for m in d["modeles"])
+        infos = " · ".join(x for x in (f"méd. {fmt_prix(d['median'])}", f"{d['vendus']} vendue{'s' if d['vendus'] > 1 else ''} ({d['v24']} &lt; 24 h)",
+                                        html.escape(d["type"] or ""), html.escape(", ".join(r.replace("manteaux ", "") for r in d["recherches"]))) if x)
         (lignes_r if d["statut"] == "risque" else lignes_d).append(
-            f"<tr><td><span class=\"st st-{d['statut']}\">{etiquettes[d['statut']]}</span></td>"
-            f"<td><a href=\"{html.escape(cherche)}\" target=\"_blank\" rel=\"noopener\">{html.escape(d['marque'])} ↗</a></td>"
-            f"<td class=\"achat\">≤ {fmt_prix(round(d['achat']))}</td><td>{fmt_prix(d['median'])}</td><td>{d['v24']} / {d['vendus']}</td>"
-            f"<td>{html.escape(d['type'] or '–')}</td><td>{mod}</td><td>{html.escape(', '.join(d['recherches']))}</td>"
-            f"<td><div class=\"vig\">{''.join(vignette(a) for a in d['exemples'])}</div></td></tr>")
+            f'<article class="dc"><div class="vig dph">{photos}</div><div class="dtx"><p class="dt"><span class="st st-{d["statut"]}">{etiquettes[d["statut"]]}</span>'
+            f' <a href="{html.escape(lien_vinted(d["marque"]))}" target="_blank" rel="noopener">{html.escape(d["marque"])} ↗</a>'
+            f' <b class="achat">≤ {fmt_prix(round(d["achat"]))}</b></p><p class="di">{infos}</p>{f"<ul>{mod}</ul>" if mod else ""}</div></article>')
     nouvelles = sum(1 for l in lignes_d if "st-nouvelle" in l)
-    bloc_r = (f"""<details class="risque"><summary>Risque contrefaçon ({len(lignes_r)}) : écartées, sans notification</summary><div class="tbl"><table><tbody>{''.join(lignes_r)}</tbody></table></div>"""
+    bloc_r = (f"""<details class="risque"><summary>Risque contrefaçon ({len(lignes_r)}) : écartées, sans notification</summary><div class="dgrid">{''.join(lignes_r)}</div>"""
               f"""<p class="sub">Marques de <code>marques_contrefaites.txt</code> : leurs nouvelles annonces ne sont plus suivies dans les recherches « {DECOUVERTE} ». Retire une ligne du fichier pour la remettre.</p></details>""") if lignes_r else ""
     section_decouvertes = (
-        f"""<section id="decouvertes"><details class="repli"><summary><h2>Découvertes ({nouvelles} nouvelle{'s' if nouvelles > 1 else ''})</h2></summary><div class="tbl"><table><thead><tr><th>Marque</th><th>Nom</th><th>Achat max</th><th>Prix médian vendu</th>"""
-        f"""<th>Vendues &lt; 24 h</th><th>Type</th><th>Modèles</th><th>Recherche</th><th>Plus rapides</th></tr></thead><tbody>"""
-        f"""{''.join(lignes_d) or f'<tr><td colspan="9">Pas encore de marque vendue au moins {DECOUVERTE_MIN_VENTES} fois dans les recherches « {DECOUVERTE} » sur {CLASSEMENT_J} jours.</td></tr>'}</tbody></table></div>{bloc_r}"""
+        f"""<section id="decouvertes"><details class="repli"><summary><h2>Découvertes ({nouvelles} nouvelle{'s' if nouvelles > 1 else ''})</h2></summary>"""
+        f"""<p class="sub">Touche une photo pour les faire défiler toutes, marque par marque (glisser, ‹ › ou ▶ Auto). Prix médian vendu, ventes en moins de 24 h et achat max par marque puis par modèle.</p>"""
+        f"""<div class="dgrid">{''.join(lignes_d) or f'<p class="sub">Pas encore de marque vendue au moins {DECOUVERTE_MIN_VENTES} fois dans les recherches « {DECOUVERTE} » sur {CLASSEMENT_J} jours.</p>'}</div>{bloc_r}"""
         f"""<p class="sub">Ventes des recherches « {DECOUVERTE} » (catégorie et prix, sans marque) sur les {CLASSEMENT_J} derniers jours, regroupées par marque. Les marques que tu ne suis pas encore sont en tête ;"""
         f""" une notification arrive quand l'une d'elles atteint {DECOUVERTE_ALERTE} ventes. Ces recherches sont vérifiées par roulement ({MAX_VERIFS_DECOUVERTE} annonces par passage) : les chiffres sont des minimums."""
         f""" Le nom de la marque ouvre Vinted en très bon état ; valide ensuite avec Kops ou un export Souk avant de l'ajouter au suivi.</p></details></section>""")
@@ -1243,7 +1251,7 @@ if(c){{var d=c.querySelector('.b.d');bd.textContent=d.textContent;bd.className=d
 var b=document.createElement('b');b.textContent=c.querySelector('.b.p').textContent;t.append(b,' · '+c.querySelector('.body .t').textContent+(c.dataset.s?' · taille '+c.dataset.s:''));
 if(c.dataset.c){{var co=document.createElement('em');co.className='co';co.textContent=c.dataset.c;t.append(co)}}
 if(c.dataset.x){{var e=document.createElement('em');e.textContent=c.dataset.x;t.append(e)}}if(L.length>1)t.append(' · '+(k+1)+' / '+L.length)}}
-else{{bd.hidden=true;t.textContent=x.dataset.t+(L.length>1?' · '+(k+1)+' / '+L.length:'')}}
+else{{bd.hidden=true;t.textContent=x.dataset.t;if(x.dataset.x){{var e=document.createElement('em');e.textContent=x.dataset.x;t.append(e)}}if(L.length>1)t.append(' · '+(k+1)+' / '+L.length)}}
 pv.hidden=nx.hidden=L.length<2;if(L.length>1){{var n=new Image();n.referrerPolicy='no-referrer';n.src=L[(k+1)%L.length].src}}}}
 function va(s){{if(L.length<2)return;k=(k+s+L.length)%L.length;show();if(tic)lancer()}}
 // Défilement automatique : ▶ Auto / ❚❚ Pause, vitesse au choix (gardée sur l'appareil)
