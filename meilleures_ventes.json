@@ -1,5 +1,5 @@
 {
-"enregistre": 1795640714.0183527,
+"enregistre": 1795654857.759189,
 "ventes": {
 "10067905752": {
 "couleur": "Kaki",
@@ -8513,25 +8513,6 @@
 "url": "https://www.vinted.fr/items/10941382584-arket-wolljacke-gr40",
 "vendu": 1795452392.402572
 },
-"10943265437": {
-"couleur": "Gris",
-"delai_h": 0.55,
-"etat": "Très bon état",
-"id": "10943265437",
-"likes": 3,
-"marque": "COS",
-"median": 85.0,
-"ph": "10943265437.jpg",
-"photo_url": "https://images1.vinted.net/t/05_00656_zwgXAyuGPT83WkLae2ZQnjm4/310x430/ad4f79b9.webp?s=becdac19c82c2eeb67da291b9b6b63bacfafd35e",
-"prix": 160.0,
-"publie": 1795459366.405453,
-"recherche": "COS",
-"semaine": "2026-48",
-"taille": "S",
-"titre": "Pull gris chiné COS en pur cachemire – épais col rond",
-"url": "https://www.vinted.fr/items/10943265437-pull-gris-chine-cos-en-pur-cachemire-epais-col-rond",
-"vendu": 1795461333.1200948
-},
 "10944044248": {
 "couleur": "Vert foncé",
 "delai_h": 0.84,
@@ -9006,25 +8987,6 @@
 "titre": "•Veste en daim marron Comptoir | Taille S•",
 "url": "https://www.vinted.fr/items/10955820044-veste-en-daim-marron-comptoir-taille-s",
 "vendu": 1795544034.7355142
-},
-"10956625981": {
-"couleur": "Marron",
-"delai_h": 0.27,
-"etat": "Très bon état",
-"id": "10956625981",
-"likes": 0,
-"marque": "Pellicce sintetiche",
-"median": 80.0,
-"ph": "10956625981.jpg",
-"photo_url": "https://images1.vinted.net/t/06_0015c_tK4g4KwC4uNZVgaetQogjJgs/310x430/feee48e7.webp?s=1997baa7cbe5dfd20cd3342e10df8a21f318e3a1",
-"prix": 250.0,
-"publie": 1795544034.7355142,
-"recherche": "Découverte manteaux femme",
-"semaine": "2026-48",
-"taille": "XL",
-"titre": "Pellicce sintetiche",
-"url": "https://www.vinted.fr/items/10956625981-pellicce-sintetiche",
-"vendu": 1795545016.3940327
 },
 "10956642727": {
 "couleur": "Noir",
@@ -9747,6 +9709,44 @@
 "titre": "Giacca barbour",
 "url": "https://www.vinted.fr/items/10971654272-giacca-barbour",
 "vendu": 1795640714.0183527
+},
+"10972192520": {
+"couleur": "Noir",
+"delai_h": 0.29,
+"etat": "Très bon état",
+"id": "10972192520",
+"likes": 31,
+"marque": "COS",
+"median": 85.0,
+"ph": "10972192520.jpg",
+"photo_url": "https://images1.vinted.net/t/01_00cdd_P9vQv1WJVDxc8wqCJgrQg3Yp/310x430/846cea31.webp?s=9daaf408819bbbd038b9213ebf2e3e4fd5f8a455",
+"prix": 110.0,
+"publie": 1795641723.2452986,
+"recherche": "COS",
+"semaine": "2026-48",
+"taille": "S",
+"titre": "COS cappotto lana cotta collo a imbuto nero S 100% lana",
+"url": "https://www.vinted.fr/items/10972192520-cos-cappotto-lana-cotta-collo-a-imbuto-nero-s-100-lana",
+"vendu": 1795642755.2347164
+},
+"10972400299": {
+"couleur": "Marron",
+"delai_h": 0.27,
+"etat": "Très bon état",
+"id": "10972400299",
+"likes": 0,
+"marque": "Cappotto pelo finto",
+"median": 80.0,
+"ph": "10972400299.jpg",
+"photo_url": "https://images1.vinted.net/t/05_00665_QUitSXPe9xNj6hTLkdyPrPAX/310x430/69c01eb7.webp?s=f710ed6a8cd57969109f425dd40e9cc3c050457e",
+"prix": 395.0,
+"publie": 1795642755.2347164,
+"recherche": "Découverte manteaux femme",
+"semaine": "2026-48",
+"taille": "M",
+"titre": "Cappotto pelo finto",
+"url": "https://www.vinted.fr/items/10972400299-cappotto-pelo-finto",
+"vendu": 1795643727.7411237
 },
 "9375584784": {
 "couleur": "Beige, Noir",
