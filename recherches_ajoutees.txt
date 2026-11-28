@@ -22,6 +22,7 @@ Columbia | https://www.vinted.fr/catalog?brand_ids[]=17161&status_ids[]=2&price_
 Save the Duck doudoune | https://www.vinted.fr/catalog?catalog[]=1907&catalog[]=2051&brand_ids[]=341007&status_ids[]=2&price_from=60&currency=EUR&order=newest_first&marque=Save The Duck
 Marc O'Polo doudoune | https://www.vinted.fr/catalog?catalog[]=1907&catalog[]=2051&brand_ids[]=17251&status_ids[]=2&price_from=60&currency=EUR&order=newest_first&marque=Marc O'Polo
 Quechua | https://www.vinted.fr/catalog?brand_ids[]=525&status_ids[]=2&price_from=55&currency=EUR&order=newest_first&marque=Quechua
+Pme Legend manteau | https://www.vinted.fr/catalog?catalog[]=1907&catalog[]=2051&brand_ids[]=359849&status_ids[]=2&price_from=60&currency=EUR&order=newest_first&marque=Pme Legend
 # Recherches « Découverte » : catégorie et prix, sans marque, pour repérer de nouvelles marques (section Découvertes de la page)
 Découverte manteaux femme | https://www.vinted.fr/catalog?catalog[]=1907&status_ids[]=2&price_from=60&currency=EUR&order=newest_first
 Découverte manteaux homme | https://www.vinted.fr/catalog?catalog[]=2051&status_ids[]=2&price_from=60&currency=EUR&order=newest_first
